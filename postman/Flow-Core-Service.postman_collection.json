@@ -1,0 +1,753 @@
+{
+  "info": {
+    "_postman_id": "flow-core-service-collection",
+    "name": "Flow Core Service API",
+    "description": "Complete API collection for Flow Core Service - manages flow graph ingestion, merging, and querying.\n\n## Quick Start\n1. Import this collection\n2. Set the `baseUrl` variable (default: http://localhost:8080)\n3. Run requests in order (Static Ingestion → Runtime Events → Queries)\n\n## Test Data\nThe collection includes realistic e-commerce order flow examples.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "graphId",
+      "value": "ecommerce-order-service",
+      "type": "string"
+    },
+    {
+      "key": "traceId",
+      "value": "trace-order-001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Metrics",
+      "description": "Health checks and monitoring endpoints",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Check application health status including all components."
+          },
+          "response": []
+        },
+        {
+          "name": "Prometheus Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/prometheus",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "prometheus"]
+            },
+            "description": "Get Prometheus-formatted metrics for scraping."
+          },
+          "response": []
+        },
+        {
+          "name": "Application Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "info"]
+            },
+            "description": "Get application information."
+          },
+          "response": []
+        },
+        {
+          "name": "Available Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "metrics"]
+            },
+            "description": "List all available metrics."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Static Graph Ingestion",
+      "description": "Ingest static graph definitions from build-time analysis",
+      "item": [
+        {
+          "name": "Ingest E-commerce Order Service Graph",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 202 Accepted\", function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains graphId\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data).to.eql(pm.variables.get(\"graphId\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graphId\": \"{{graphId}}\",\n  \"version\": \"1.0.0\",\n  \"nodes\": [\n    {\n      \"nodeId\": \"endpoint-create-order\",\n      \"type\": \"ENDPOINT\",\n      \"name\": \"POST /api/orders\",\n      \"label\": \"Create Order API\",\n      \"attributes\": {\n        \"httpMethod\": \"POST\",\n        \"path\": \"/api/orders\",\n        \"produces\": \"application/json\"\n      }\n    },\n    {\n      \"nodeId\": \"endpoint-get-order\",\n      \"type\": \"ENDPOINT\",\n      \"name\": \"GET /api/orders/{id}\",\n      \"label\": \"Get Order API\",\n      \"attributes\": {\n        \"httpMethod\": \"GET\",\n        \"path\": \"/api/orders/{id}\"\n      }\n    },\n    {\n      \"nodeId\": \"service-order-process\",\n      \"type\": \"METHOD\",\n      \"name\": \"OrderService.processOrder\",\n      \"label\": \"Process Order\",\n      \"attributes\": {\n        \"class\": \"com.ecommerce.order.OrderService\",\n        \"visibility\": \"PUBLIC\"\n      }\n    },\n    {\n      \"nodeId\": \"service-order-validate\",\n      \"type\": \"METHOD\",\n      \"name\": \"OrderService.validateOrder\",\n      \"label\": \"Validate Order\",\n      \"attributes\": {\n        \"class\": \"com.ecommerce.order.OrderService\",\n        \"visibility\": \"PRIVATE\"\n      }\n    },\n    {\n      \"nodeId\": \"service-inventory-check\",\n      \"type\": \"METHOD\",\n      \"name\": \"InventoryService.checkAvailability\",\n      \"label\": \"Check Inventory\",\n      \"attributes\": {\n        \"class\": \"com.ecommerce.inventory.InventoryService\"\n      }\n    },\n    {\n      \"nodeId\": \"service-inventory-reserve\",\n      \"type\": \"METHOD\",\n      \"name\": \"InventoryService.reserveItems\",\n      \"label\": \"Reserve Items\",\n      \"attributes\": {\n        \"class\": \"com.ecommerce.inventory.InventoryService\"\n      }\n    },\n    {\n      \"nodeId\": \"service-payment-process\",\n      \"type\": \"METHOD\",\n      \"name\": \"PaymentService.processPayment\",\n      \"label\": \"Process Payment\",\n      \"attributes\": {\n        \"class\": \"com.ecommerce.payment.PaymentService\"\n      }\n    },\n    {\n      \"nodeId\": \"service-notification-send\",\n      \"type\": \"METHOD\",\n      \"name\": \"NotificationService.sendOrderConfirmation\",\n      \"label\": \"Send Confirmation\",\n      \"attributes\": {\n        \"async\": true\n      }\n    },\n    {\n      \"nodeId\": \"topic-order-events\",\n      \"type\": \"TOPIC\",\n      \"name\": \"order-events\",\n      \"label\": \"Order Events Topic\",\n      \"attributes\": {\n        \"broker\": \"kafka\",\n        \"partitions\": 6\n      }\n    },\n    {\n      \"nodeId\": \"external-payment-gateway\",\n      \"type\": \"EXTERNAL\",\n      \"name\": \"Stripe API\",\n      \"label\": \"Payment Gateway\",\n      \"attributes\": {\n        \"provider\": \"stripe\",\n        \"endpoint\": \"https://api.stripe.com/v1\"\n      }\n    },\n    {\n      \"nodeId\": \"external-email-service\",\n      \"type\": \"EXTERNAL\",\n      \"name\": \"SendGrid\",\n      \"label\": \"Email Service\",\n      \"attributes\": {\n        \"provider\": \"sendgrid\"\n      }\n    }\n  ],\n  \"edges\": [\n    {\n      \"edgeId\": \"e1\",\n      \"sourceNodeId\": \"endpoint-create-order\",\n      \"targetNodeId\": \"service-order-process\",\n      \"type\": \"CALL\",\n      \"label\": \"invokes\"\n    },\n    {\n      \"edgeId\": \"e2\",\n      \"sourceNodeId\": \"service-order-process\",\n      \"targetNodeId\": \"service-order-validate\",\n      \"type\": \"CALL\",\n      \"label\": \"validates\"\n    },\n    {\n      \"edgeId\": \"e3\",\n      \"sourceNodeId\": \"service-order-process\",\n      \"targetNodeId\": \"service-inventory-check\",\n      \"type\": \"CALL\",\n      \"label\": \"checks\"\n    },\n    {\n      \"edgeId\": \"e4\",\n      \"sourceNodeId\": \"service-order-process\",\n      \"targetNodeId\": \"service-inventory-reserve\",\n      \"type\": \"CALL\",\n      \"label\": \"reserves\"\n    },\n    {\n      \"edgeId\": \"e5\",\n      \"sourceNodeId\": \"service-order-process\",\n      \"targetNodeId\": \"service-payment-process\",\n      \"type\": \"CALL\",\n      \"label\": \"processes payment\"\n    },\n    {\n      \"edgeId\": \"e6\",\n      \"sourceNodeId\": \"service-payment-process\",\n      \"targetNodeId\": \"external-payment-gateway\",\n      \"type\": \"HTTP\",\n      \"label\": \"charges card\"\n    },\n    {\n      \"edgeId\": \"e7\",\n      \"sourceNodeId\": \"service-order-process\",\n      \"targetNodeId\": \"topic-order-events\",\n      \"type\": \"PRODUCES\",\n      \"label\": \"publishes event\"\n    },\n    {\n      \"edgeId\": \"e8\",\n      \"sourceNodeId\": \"topic-order-events\",\n      \"targetNodeId\": \"service-notification-send\",\n      \"type\": \"CONSUMES\",\n      \"label\": \"triggers\"\n    },\n    {\n      \"edgeId\": \"e9\",\n      \"sourceNodeId\": \"service-notification-send\",\n      \"targetNodeId\": \"external-email-service\",\n      \"type\": \"HTTP\",\n      \"label\": \"sends email\"\n    }\n  ],\n  \"metadata\": {\n    \"application\": \"order-service\",\n    \"team\": \"commerce-platform\",\n    \"environment\": \"production\",\n    \"buildNumber\": \"1234\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ingest/static",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingest", "static"]
+            },
+            "description": "Ingest a complete e-commerce order service graph with endpoints, services, topics, and external integrations."
+          },
+          "response": []
+        },
+        {
+          "name": "Ingest User Auth Service Graph",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 202 Accepted\", function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graphId\": \"user-auth-service\",\n  \"version\": \"2.1.0\",\n  \"nodes\": [\n    {\n      \"nodeId\": \"endpoint-login\",\n      \"type\": \"ENDPOINT\",\n      \"name\": \"POST /api/auth/login\",\n      \"label\": \"User Login\"\n    },\n    {\n      \"nodeId\": \"endpoint-logout\",\n      \"type\": \"ENDPOINT\",\n      \"name\": \"POST /api/auth/logout\",\n      \"label\": \"User Logout\"\n    },\n    {\n      \"nodeId\": \"service-auth-authenticate\",\n      \"type\": \"METHOD\",\n      \"name\": \"AuthService.authenticate\",\n      \"label\": \"Authenticate User\"\n    },\n    {\n      \"nodeId\": \"service-token-generate\",\n      \"type\": \"METHOD\",\n      \"name\": \"TokenService.generateTokenPair\",\n      \"label\": \"Generate Tokens\"\n    },\n    {\n      \"nodeId\": \"service-user-find\",\n      \"type\": \"METHOD\",\n      \"name\": \"UserRepository.findByEmail\",\n      \"label\": \"Find User\"\n    },\n    {\n      \"nodeId\": \"external-redis-cache\",\n      \"type\": \"EXTERNAL\",\n      \"name\": \"Redis\",\n      \"label\": \"Session Cache\"\n    }\n  ],\n  \"edges\": [\n    {\"edgeId\": \"e1\", \"sourceNodeId\": \"endpoint-login\", \"targetNodeId\": \"service-auth-authenticate\", \"type\": \"CALL\"},\n    {\"edgeId\": \"e2\", \"sourceNodeId\": \"service-auth-authenticate\", \"targetNodeId\": \"service-user-find\", \"type\": \"CALL\"},\n    {\"edgeId\": \"e3\", \"sourceNodeId\": \"service-auth-authenticate\", \"targetNodeId\": \"service-token-generate\", \"type\": \"CALL\"},\n    {\"edgeId\": \"e4\", \"sourceNodeId\": \"service-token-generate\", \"targetNodeId\": \"external-redis-cache\", \"type\": \"CACHE_PUT\"}\n  ],\n  \"metadata\": {\n    \"application\": \"auth-service\",\n    \"team\": \"identity\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ingest/static",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingest", "static"]
+            },
+            "description": "Ingest a user authentication service graph."
+          },
+          "response": []
+        },
+        {
+          "name": "Ingest Simple Graph (Minimal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graphId\": \"simple-service\",\n  \"version\": \"1.0.0\",\n  \"nodes\": [\n    {\"nodeId\": \"api\", \"type\": \"ENDPOINT\", \"name\": \"GET /api/hello\", \"label\": \"Hello API\"},\n    {\"nodeId\": \"service\", \"type\": \"METHOD\", \"name\": \"HelloService.sayHello\", \"label\": \"Say Hello\"}\n  ],\n  \"edges\": [\n    {\"edgeId\": \"e1\", \"sourceNodeId\": \"api\", \"targetNodeId\": \"service\", \"type\": \"CALL\"}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ingest/static",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingest", "static"]
+            },
+            "description": "Ingest a minimal graph with just 2 nodes and 1 edge."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Runtime Event Ingestion",
+      "description": "Ingest runtime execution events from application traces",
+      "item": [
+        {
+          "name": "Ingest Successful Order Flow Events",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.variables.set(\"traceId\", \"trace-order-\" + Date.now());"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 202 Accepted\", function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains traceId\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graphId\": \"{{graphId}}\",\n  \"traceId\": \"{{traceId}}\",\n  \"events\": [\n    {\n      \"eventId\": \"evt-001\",\n      \"type\": \"METHOD_ENTER\",\n      \"timestamp\": \"2025-12-05T14:30:00.000Z\",\n      \"nodeId\": \"endpoint-create-order\",\n      \"spanId\": \"span-001\",\n      \"parentSpanId\": null,\n      \"attributes\": {\n        \"userId\": \"user-12345\",\n        \"cartId\": \"cart-67890\"\n      }\n    },\n    {\n      \"eventId\": \"evt-002\",\n      \"type\": \"METHOD_ENTER\",\n      \"timestamp\": \"2025-12-05T14:30:00.010Z\",\n      \"nodeId\": \"service-order-process\",\n      \"spanId\": \"span-002\",\n      \"parentSpanId\": \"span-001\"\n    },\n    {\n      \"eventId\": \"evt-003\",\n      \"type\": \"METHOD_ENTER\",\n      \"timestamp\": \"2025-12-05T14:30:00.020Z\",\n      \"nodeId\": \"service-inventory-check\",\n      \"spanId\": \"span-003\",\n      \"parentSpanId\": \"span-002\"\n    },\n    {\n      \"eventId\": \"evt-004\",\n      \"type\": \"METHOD_EXIT\",\n      \"timestamp\": \"2025-12-05T14:30:00.050Z\",\n      \"nodeId\": \"service-inventory-check\",\n      \"spanId\": \"span-003\",\n      \"durationMs\": 30,\n      \"attributes\": {\"available\": true}\n    },\n    {\n      \"eventId\": \"evt-005\",\n      \"type\": \"METHOD_ENTER\",\n      \"timestamp\": \"2025-12-05T14:30:00.060Z\",\n      \"nodeId\": \"service-payment-process\",\n      \"spanId\": \"span-004\",\n      \"parentSpanId\": \"span-002\"\n    },\n    {\n      \"eventId\": \"evt-006\",\n      \"type\": \"METHOD_EXIT\",\n      \"timestamp\": \"2025-12-05T14:30:00.260Z\",\n      \"nodeId\": \"service-payment-process\",\n      \"spanId\": \"span-004\",\n      \"durationMs\": 200,\n      \"attributes\": {\n        \"paymentId\": \"pay-stripe-12345\",\n        \"amount\": 149.99\n      }\n    },\n    {\n      \"eventId\": \"evt-007\",\n      \"type\": \"METHOD_EXIT\",\n      \"timestamp\": \"2025-12-05T14:30:00.280Z\",\n      \"nodeId\": \"service-order-process\",\n      \"spanId\": \"span-002\",\n      \"durationMs\": 270,\n      \"attributes\": {\"orderId\": \"order-12345\", \"status\": \"CONFIRMED\"}\n    },\n    {\n      \"eventId\": \"evt-008\",\n      \"type\": \"METHOD_EXIT\",\n      \"timestamp\": \"2025-12-05T14:30:00.285Z\",\n      \"nodeId\": \"endpoint-create-order\",\n      \"spanId\": \"span-001\",\n      \"durationMs\": 285,\n      \"attributes\": {\"httpStatus\": 201}\n    }\n  ],\n  \"traceComplete\": true,\n  \"metadata\": {\n    \"source\": \"flow-runtime-plugin\",\n    \"hostName\": \"order-service-pod-1\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ingest/runtime",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingest", "runtime"]
+            },
+            "description": "Ingest a complete successful order flow trace with all events."
+          },
+          "response": []
+        },
+        {
+          "name": "Ingest Failed Payment Flow Events",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.variables.set(\"failedTraceId\", \"trace-failed-\" + Date.now());"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graphId\": \"{{graphId}}\",\n  \"traceId\": \"{{failedTraceId}}\",\n  \"events\": [\n    {\n      \"eventId\": \"evt-f01\",\n      \"type\": \"METHOD_ENTER\",\n      \"timestamp\": \"2025-12-05T15:00:00.000Z\",\n      \"nodeId\": \"endpoint-create-order\",\n      \"spanId\": \"span-f01\",\n      \"parentSpanId\": null,\n      \"attributes\": {\"userId\": \"user-999\"}\n    },\n    {\n      \"eventId\": \"evt-f02\",\n      \"type\": \"METHOD_ENTER\",\n      \"timestamp\": \"2025-12-05T15:00:00.050Z\",\n      \"nodeId\": \"service-payment-process\",\n      \"spanId\": \"span-f02\",\n      \"parentSpanId\": \"span-f01\"\n    },\n    {\n      \"eventId\": \"evt-f03\",\n      \"type\": \"ERROR\",\n      \"timestamp\": \"2025-12-05T15:00:00.200Z\",\n      \"nodeId\": \"service-payment-process\",\n      \"spanId\": \"span-f02\",\n      \"errorMessage\": \"Payment declined: Insufficient funds\",\n      \"errorType\": \"PaymentDeclinedException\",\n      \"attributes\": {\"declineCode\": \"insufficient_funds\"}\n    },\n    {\n      \"eventId\": \"evt-f04\",\n      \"type\": \"METHOD_EXIT\",\n      \"timestamp\": \"2025-12-05T15:00:00.210Z\",\n      \"nodeId\": \"service-payment-process\",\n      \"spanId\": \"span-f02\",\n      \"durationMs\": 160,\n      \"attributes\": {\"success\": false}\n    },\n    {\n      \"eventId\": \"evt-f05\",\n      \"type\": \"METHOD_EXIT\",\n      \"timestamp\": \"2025-12-05T15:00:00.220Z\",\n      \"nodeId\": \"endpoint-create-order\",\n      \"spanId\": \"span-f01\",\n      \"durationMs\": 220,\n      \"attributes\": {\"httpStatus\": 402}\n    }\n  ],\n  \"traceComplete\": true,\n  \"metadata\": {\"source\": \"flow-runtime-plugin\"}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ingest/runtime",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingest", "runtime"]
+            },
+            "description": "Ingest a failed order flow with payment error."
+          },
+          "response": []
+        },
+        {
+          "name": "Ingest Partial Trace (Not Complete)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graphId\": \"{{graphId}}\",\n  \"traceId\": \"trace-partial-001\",\n  \"events\": [\n    {\n      \"eventId\": \"evt-p01\",\n      \"type\": \"METHOD_ENTER\",\n      \"timestamp\": \"2025-12-05T16:00:00.000Z\",\n      \"nodeId\": \"endpoint-create-order\",\n      \"spanId\": \"span-p01\"\n    },\n    {\n      \"eventId\": \"evt-p02\",\n      \"type\": \"METHOD_ENTER\",\n      \"timestamp\": \"2025-12-05T16:00:00.010Z\",\n      \"nodeId\": \"service-order-process\",\n      \"spanId\": \"span-p02\",\n      \"parentSpanId\": \"span-p01\"\n    }\n  ],\n  \"traceComplete\": false,\n  \"metadata\": {\"source\": \"flow-runtime-plugin\"}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ingest/runtime",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingest", "runtime"]
+            },
+            "description": "Ingest partial trace events (more events coming later)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Graph Queries",
+      "description": "Query and manage stored graphs",
+      "item": [
+        {
+          "name": "List All Graphs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/graphs",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphs"]
+            },
+            "description": "List all stored graphs with summary information."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Graph by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains graph data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.graphId).to.eql(pm.variables.get(\"graphId\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/graphs/{{graphId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphs", "{{graphId}}"]
+            },
+            "description": "Get complete graph details by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Graph - Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/graphs/non-existent-graph",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphs", "non-existent-graph"]
+            },
+            "description": "Test 404 response for non-existent graph."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Graph",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204 or 200\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/graphs/simple-service",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphs", "simple-service"]
+            },
+            "description": "Delete a graph and all associated traces."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Flow Extraction (Zoom)",
+      "description": "Extract zoomed views of graphs for visualization",
+      "item": [
+        {
+          "name": "Get Zoomed View - Level 0 (Overview)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/flow/{{graphId}}?zoom=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["flow", "{{graphId}}"],
+              "query": [
+                {
+                  "key": "zoom",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Get high-level overview (endpoints, topics, external systems only)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Zoomed View - Level 1 (Service)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/flow/{{graphId}}?zoom=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["flow", "{{graphId}}"],
+              "query": [
+                {
+                  "key": "zoom",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Get service-level view (public methods, key integrations)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Zoomed View - Level 2 (Component)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/flow/{{graphId}}?zoom=2",
+              "host": ["{{baseUrl}}"],
+              "path": ["flow", "{{graphId}}"],
+              "query": [
+                {
+                  "key": "zoom",
+                  "value": "2"
+                }
+              ]
+            },
+            "description": "Get component-level view (protected methods, internal services)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Zoomed View - Default",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/flow/{{graphId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["flow", "{{graphId}}"]
+            },
+            "description": "Get default zoomed view (zoom=0)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Trace Queries",
+      "description": "Query runtime trace information",
+      "item": [
+        {
+          "name": "Get Trace by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 or 404\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trace/{{traceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["trace", "{{traceId}}"]
+            },
+            "description": "Get complete trace details including events, checkpoints, and errors."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Trace - Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/trace/non-existent-trace",
+              "host": ["{{baseUrl}}"],
+              "path": ["trace", "non-existent-trace"]
+            },
+            "description": "Test 404 response for non-existent trace."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Neo4j Export",
+      "description": "Export graphs to Neo4j database",
+      "item": [
+        {
+          "name": "Generate Cypher Statements",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains cypher statements\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.cypherStatements).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/export/neo4j/{{graphId}}?mode=cypher",
+              "host": ["{{baseUrl}}"],
+              "path": ["export", "neo4j", "{{graphId}}"],
+              "query": [
+                {
+                  "key": "mode",
+                  "value": "cypher"
+                }
+              ]
+            },
+            "description": "Generate Cypher statements for a graph (returns JSON with statements)."
+          },
+          "response": []
+        },
+        {
+          "name": "Push to Neo4j",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/export/neo4j/{{graphId}}?mode=push",
+              "host": ["{{baseUrl}}"],
+              "path": ["export", "neo4j", "{{graphId}}"],
+              "query": [
+                {
+                  "key": "mode",
+                  "value": "push"
+                }
+              ]
+            },
+            "description": "Push graph directly to configured Neo4j instance."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Cases",
+      "description": "Test error handling",
+      "item": [
+        {
+          "name": "Invalid Static Graph - Missing GraphId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": \"1.0.0\",\n  \"nodes\": [],\n  \"edges\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ingest/static",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingest", "static"]
+            },
+            "description": "Test validation error when graphId is missing."
+          },
+          "response": []
+        },
+        {
+          "name": "Runtime Events - Graph Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"graphId\": \"non-existent-graph\",\n  \"traceId\": \"trace-001\",\n  \"events\": [\n    {\n      \"eventId\": \"evt-001\",\n      \"type\": \"METHOD_ENTER\",\n      \"timestamp\": \"2025-12-05T10:00:00Z\",\n      \"nodeId\": \"some-node\",\n      \"spanId\": \"span-001\"\n    }\n  ],\n  \"traceComplete\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ingest/runtime",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingest", "runtime"]
+            },
+            "description": "Test 404 when graph doesn't exist for runtime events."
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid JSON Body",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ invalid json }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ingest/static",
+              "host": ["{{baseUrl}}"],
+              "path": ["ingest", "static"]
+            },
+            "description": "Test error handling for malformed JSON."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
+

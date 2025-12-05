@@ -1,0 +1,72 @@
+# Test profile configuration
+spring:
+  application:
+    name: flow-core-service-test
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# Reduced logging for tests
+logging:
+  level:
+    root: WARN
+    com.flow: DEBUG
+    org.springframework.test: INFO
+
+# OpenAPI disabled for tests
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
+
+# Flow test configuration
+flow:
+  enabled: true
+
+  features:
+    neo4j-export-enabled: false  # Disabled - no Neo4j in simple tests
+    async-merge-enabled: true
+    deduplication-enabled: true
+    metrics-enabled: true
+    virtual-threads-enabled: true
+
+  tenant:
+    enabled: false
+    default-tenant-id: test
+
+  ingest:
+    queue:
+      capacity: 500
+      backpressure-threshold: 80
+    worker:
+      interval-ms: 25
+      thread-count: 2
+      batch-size: 50
+    timeout:
+      enqueue-ms: 2000
+      poll-ms: 50
+      merge-ms: 5000
+
+  retention:
+    graph:
+      ttl-minutes: 0
+      max-count: 100
+      eviction-interval-ms: 60000
+    trace:
+      ttl-minutes: 5
+      max-count: 500
+      eviction-interval-ms: 30000
+
+  neo4j:
+    uri: bolt://localhost:7687
+    username: neo4j
+    password: test
+

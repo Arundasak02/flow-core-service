@@ -1,0 +1,99 @@
+spring:
+  application:
+    name: flow-core-service
+  # Neo4j configuration for Spring Boot auto-configuration (health checks)
+  neo4j:
+    uri: bolt://localhost:7687
+    authentication:
+      username: neo4j
+      password: Arundas@02
+
+server:
+  port: 8080
+
+# Actuator & Metrics
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus,info
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  health:
+    neo4j:
+      enabled: false
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.flow: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# OpenAPI/Swagger
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+
+# Flow Core Service Configuration
+flow:
+  enabled: true
+
+  features:
+    neo4j-export-enabled: true
+    async-merge-enabled: true
+    deduplication-enabled: true
+    metrics-enabled: true
+    # Java 21 Virtual Threads - enables lightweight threads for I/O-bound operations
+    # Provides better scalability for queue processing, merging, and exports
+    virtual-threads-enabled: true
+
+  tenant:
+    enabled: false
+    header-name: X-Tenant-Id
+    default-tenant-id: default
+
+  # Ingestion Configuration
+  ingest:
+    queue:
+      capacity: 10000
+      backpressure-threshold: 80
+    worker:
+      interval-ms: 50
+      # Number of worker threads (virtual threads when virtual-threads-enabled=true)
+      # With virtual threads, this can be increased significantly without memory impact
+      thread-count: 4
+      batch-size: 100
+    timeout:
+      enqueue-ms: 5000
+      poll-ms: 100
+      merge-ms: 30000
+
+  # Retention Configuration
+  retention:
+    graph:
+      ttl-minutes: 0  # 0 = no auto-eviction
+      max-count: 10000
+      eviction-interval-ms: 300000
+    trace:
+      ttl-minutes: 10
+      max-count: 100000
+      eviction-interval-ms: 60000
+
+  # Neo4j Configuration (when enabled)
+  neo4j:
+    uri: bolt://localhost:7687
+    username: neo4j
+    password: Arundas@02
+

@@ -1,0 +1,865 @@
+{
+  "description": "Flow Core Service - Test Data Examples",
+  "version": "1.0.0",
+  "examples": {
+    "staticGraphs": {
+      "ecommerceOrderService": {
+        "description": "E-commerce order processing flow with inventory, payment, and notifications",
+        "request": {
+          "graphId": "ecommerce-order-service",
+          "version": "1.0.0",
+          "nodes": [
+            {
+              "nodeId": "endpoint-create-order",
+              "type": "ENDPOINT",
+              "name": "POST /api/orders",
+              "label": "Create Order API",
+              "attributes": {
+                "httpMethod": "POST",
+                "path": "/api/orders",
+                "produces": "application/json",
+                "consumes": "application/json"
+              }
+            },
+            {
+              "nodeId": "endpoint-get-order",
+              "type": "ENDPOINT",
+              "name": "GET /api/orders/{id}",
+              "label": "Get Order API",
+              "attributes": {
+                "httpMethod": "GET",
+                "path": "/api/orders/{id}",
+                "produces": "application/json"
+              }
+            },
+            {
+              "nodeId": "service-order-process",
+              "type": "METHOD",
+              "name": "OrderService.processOrder",
+              "label": "Process Order",
+              "attributes": {
+                "class": "com.ecommerce.order.OrderService",
+                "visibility": "PUBLIC",
+                "returnType": "Order"
+              }
+            },
+            {
+              "nodeId": "service-order-validate",
+              "type": "METHOD",
+              "name": "OrderService.validateOrder",
+              "label": "Validate Order",
+              "attributes": {
+                "class": "com.ecommerce.order.OrderService",
+                "visibility": "PRIVATE",
+                "returnType": "ValidationResult"
+              }
+            },
+            {
+              "nodeId": "service-inventory-check",
+              "type": "METHOD",
+              "name": "InventoryService.checkAvailability",
+              "label": "Check Inventory",
+              "attributes": {
+                "class": "com.ecommerce.inventory.InventoryService",
+                "visibility": "PUBLIC",
+                "returnType": "AvailabilityResult"
+              }
+            },
+            {
+              "nodeId": "service-inventory-reserve",
+              "type": "METHOD",
+              "name": "InventoryService.reserveItems",
+              "label": "Reserve Items",
+              "attributes": {
+                "class": "com.ecommerce.inventory.InventoryService",
+                "visibility": "PUBLIC",
+                "returnType": "ReservationResult"
+              }
+            },
+            {
+              "nodeId": "service-payment-process",
+              "type": "METHOD",
+              "name": "PaymentService.processPayment",
+              "label": "Process Payment",
+              "attributes": {
+                "class": "com.ecommerce.payment.PaymentService",
+                "visibility": "PUBLIC",
+                "returnType": "PaymentResult"
+              }
+            },
+            {
+              "nodeId": "service-notification-send",
+              "type": "METHOD",
+              "name": "NotificationService.sendOrderConfirmation",
+              "label": "Send Confirmation",
+              "attributes": {
+                "class": "com.ecommerce.notification.NotificationService",
+                "visibility": "PUBLIC",
+                "async": true
+              }
+            },
+            {
+              "nodeId": "topic-order-events",
+              "type": "TOPIC",
+              "name": "order-events",
+              "label": "Order Events Topic",
+              "attributes": {
+                "broker": "kafka",
+                "partitions": 6,
+                "replicationFactor": 3
+              }
+            },
+            {
+              "nodeId": "topic-inventory-updates",
+              "type": "TOPIC",
+              "name": "inventory-updates",
+              "label": "Inventory Updates Topic",
+              "attributes": {
+                "broker": "kafka",
+                "partitions": 3
+              }
+            },
+            {
+              "nodeId": "external-payment-gateway",
+              "type": "EXTERNAL",
+              "name": "Stripe API",
+              "label": "Payment Gateway",
+              "attributes": {
+                "provider": "stripe",
+                "endpoint": "https://api.stripe.com/v1",
+                "timeout": 30000
+              }
+            },
+            {
+              "nodeId": "external-email-service",
+              "type": "EXTERNAL",
+              "name": "SendGrid",
+              "label": "Email Service",
+              "attributes": {
+                "provider": "sendgrid",
+                "endpoint": "https://api.sendgrid.com/v3"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "edgeId": "e1",
+              "sourceNodeId": "endpoint-create-order",
+              "targetNodeId": "service-order-process",
+              "type": "CALL",
+              "label": "invokes"
+            },
+            {
+              "edgeId": "e2",
+              "sourceNodeId": "service-order-process",
+              "targetNodeId": "service-order-validate",
+              "type": "CALL",
+              "label": "validates"
+            },
+            {
+              "edgeId": "e3",
+              "sourceNodeId": "service-order-process",
+              "targetNodeId": "service-inventory-check",
+              "type": "CALL",
+              "label": "checks availability"
+            },
+            {
+              "edgeId": "e4",
+              "sourceNodeId": "service-order-process",
+              "targetNodeId": "service-inventory-reserve",
+              "type": "CALL",
+              "label": "reserves items"
+            },
+            {
+              "edgeId": "e5",
+              "sourceNodeId": "service-order-process",
+              "targetNodeId": "service-payment-process",
+              "type": "CALL",
+              "label": "processes payment"
+            },
+            {
+              "edgeId": "e6",
+              "sourceNodeId": "service-payment-process",
+              "targetNodeId": "external-payment-gateway",
+              "type": "HTTP",
+              "label": "charges card"
+            },
+            {
+              "edgeId": "e7",
+              "sourceNodeId": "service-order-process",
+              "targetNodeId": "topic-order-events",
+              "type": "PRODUCES",
+              "label": "publishes event"
+            },
+            {
+              "edgeId": "e8",
+              "sourceNodeId": "service-inventory-reserve",
+              "targetNodeId": "topic-inventory-updates",
+              "type": "PRODUCES",
+              "label": "publishes update"
+            },
+            {
+              "edgeId": "e9",
+              "sourceNodeId": "topic-order-events",
+              "targetNodeId": "service-notification-send",
+              "type": "CONSUMES",
+              "label": "triggers notification"
+            },
+            {
+              "edgeId": "e10",
+              "sourceNodeId": "service-notification-send",
+              "targetNodeId": "external-email-service",
+              "type": "HTTP",
+              "label": "sends email"
+            }
+          ],
+          "metadata": {
+            "application": "order-service",
+            "team": "commerce-platform",
+            "environment": "production",
+            "buildNumber": "1234",
+            "gitCommit": "abc123def456"
+          }
+        }
+      },
+      "userAuthenticationService": {
+        "description": "User authentication and authorization flow",
+        "request": {
+          "graphId": "user-auth-service",
+          "version": "2.1.0",
+          "nodes": [
+            {
+              "nodeId": "endpoint-login",
+              "type": "ENDPOINT",
+              "name": "POST /api/auth/login",
+              "label": "User Login",
+              "attributes": {"httpMethod": "POST", "path": "/api/auth/login"}
+            },
+            {
+              "nodeId": "endpoint-logout",
+              "type": "ENDPOINT",
+              "name": "POST /api/auth/logout",
+              "label": "User Logout",
+              "attributes": {"httpMethod": "POST", "path": "/api/auth/logout"}
+            },
+            {
+              "nodeId": "endpoint-refresh",
+              "type": "ENDPOINT",
+              "name": "POST /api/auth/refresh",
+              "label": "Refresh Token",
+              "attributes": {"httpMethod": "POST", "path": "/api/auth/refresh"}
+            },
+            {
+              "nodeId": "service-auth-authenticate",
+              "type": "METHOD",
+              "name": "AuthService.authenticate",
+              "label": "Authenticate User"
+            },
+            {
+              "nodeId": "service-auth-validate-credentials",
+              "type": "METHOD",
+              "name": "AuthService.validateCredentials",
+              "label": "Validate Credentials"
+            },
+            {
+              "nodeId": "service-token-generate",
+              "type": "METHOD",
+              "name": "TokenService.generateTokenPair",
+              "label": "Generate Tokens"
+            },
+            {
+              "nodeId": "service-token-validate",
+              "type": "METHOD",
+              "name": "TokenService.validateToken",
+              "label": "Validate Token"
+            },
+            {
+              "nodeId": "service-user-find",
+              "type": "METHOD",
+              "name": "UserRepository.findByEmail",
+              "label": "Find User"
+            },
+            {
+              "nodeId": "service-session-create",
+              "type": "METHOD",
+              "name": "SessionService.createSession",
+              "label": "Create Session"
+            },
+            {
+              "nodeId": "external-redis-cache",
+              "type": "EXTERNAL",
+              "name": "Redis",
+              "label": "Session Cache",
+              "attributes": {"type": "cache", "host": "redis.internal"}
+            }
+          ],
+          "edges": [
+            {"edgeId": "e1", "sourceNodeId": "endpoint-login", "targetNodeId": "service-auth-authenticate", "type": "CALL"},
+            {"edgeId": "e2", "sourceNodeId": "service-auth-authenticate", "targetNodeId": "service-user-find", "type": "CALL"},
+            {"edgeId": "e3", "sourceNodeId": "service-auth-authenticate", "targetNodeId": "service-auth-validate-credentials", "type": "CALL"},
+            {"edgeId": "e4", "sourceNodeId": "service-auth-authenticate", "targetNodeId": "service-token-generate", "type": "CALL"},
+            {"edgeId": "e5", "sourceNodeId": "service-auth-authenticate", "targetNodeId": "service-session-create", "type": "CALL"},
+            {"edgeId": "e6", "sourceNodeId": "service-session-create", "targetNodeId": "external-redis-cache", "type": "CACHE_PUT"},
+            {"edgeId": "e7", "sourceNodeId": "endpoint-refresh", "targetNodeId": "service-token-validate", "type": "CALL"},
+            {"edgeId": "e8", "sourceNodeId": "service-token-validate", "targetNodeId": "external-redis-cache", "type": "CACHE_GET"}
+          ],
+          "metadata": {
+            "application": "auth-service",
+            "team": "identity",
+            "environment": "production"
+          }
+        }
+      },
+      "notificationService": {
+        "description": "Multi-channel notification service",
+        "request": {
+          "graphId": "notification-service",
+          "version": "1.5.0",
+          "nodes": [
+            {"nodeId": "topic-notifications", "type": "TOPIC", "name": "notification-requests", "label": "Notification Queue"},
+            {"nodeId": "consumer-notification", "type": "METHOD", "name": "NotificationConsumer.handleNotification", "label": "Handle Notification"},
+            {"nodeId": "service-router", "type": "METHOD", "name": "NotificationRouter.route", "label": "Route Notification"},
+            {"nodeId": "service-email", "type": "METHOD", "name": "EmailNotificationHandler.send", "label": "Send Email"},
+            {"nodeId": "service-sms", "type": "METHOD", "name": "SmsNotificationHandler.send", "label": "Send SMS"},
+            {"nodeId": "service-push", "type": "METHOD", "name": "PushNotificationHandler.send", "label": "Send Push"},
+            {"nodeId": "external-sendgrid", "type": "EXTERNAL", "name": "SendGrid", "label": "Email Provider"},
+            {"nodeId": "external-twilio", "type": "EXTERNAL", "name": "Twilio", "label": "SMS Provider"},
+            {"nodeId": "external-firebase", "type": "EXTERNAL", "name": "Firebase", "label": "Push Provider"}
+          ],
+          "edges": [
+            {"edgeId": "e1", "sourceNodeId": "topic-notifications", "targetNodeId": "consumer-notification", "type": "CONSUMES"},
+            {"edgeId": "e2", "sourceNodeId": "consumer-notification", "targetNodeId": "service-router", "type": "CALL"},
+            {"edgeId": "e3", "sourceNodeId": "service-router", "targetNodeId": "service-email", "type": "CALL"},
+            {"edgeId": "e4", "sourceNodeId": "service-router", "targetNodeId": "service-sms", "type": "CALL"},
+            {"edgeId": "e5", "sourceNodeId": "service-router", "targetNodeId": "service-push", "type": "CALL"},
+            {"edgeId": "e6", "sourceNodeId": "service-email", "targetNodeId": "external-sendgrid", "type": "HTTP"},
+            {"edgeId": "e7", "sourceNodeId": "service-sms", "targetNodeId": "external-twilio", "type": "HTTP"},
+            {"edgeId": "e8", "sourceNodeId": "service-push", "targetNodeId": "external-firebase", "type": "HTTP"}
+          ],
+          "metadata": {
+            "application": "notification-service",
+            "team": "platform"
+          }
+        }
+      }
+    },
+    "runtimeEvents": {
+      "successfulOrderFlow": {
+        "description": "Complete successful order flow with all steps",
+        "request": {
+          "graphId": "ecommerce-order-service",
+          "traceId": "trace-order-success-20251205-001",
+          "events": [
+            {
+              "eventId": "evt-001",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T14:30:00.000Z",
+              "nodeId": "endpoint-create-order",
+              "spanId": "span-001",
+              "parentSpanId": null,
+              "attributes": {
+                "userId": "user-12345",
+                "cartId": "cart-67890",
+                "requestId": "req-abcdef"
+              }
+            },
+            {
+              "eventId": "evt-002",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T14:30:00.005Z",
+              "nodeId": "service-order-process",
+              "spanId": "span-002",
+              "parentSpanId": "span-001"
+            },
+            {
+              "eventId": "evt-003",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T14:30:00.010Z",
+              "nodeId": "service-order-validate",
+              "spanId": "span-003",
+              "parentSpanId": "span-002"
+            },
+            {
+              "eventId": "evt-004",
+              "type": "CHECKPOINT",
+              "timestamp": "2025-12-05T14:30:00.015Z",
+              "nodeId": "service-order-validate",
+              "spanId": "span-003",
+              "attributes": {
+                "checkpointName": "Order Validated",
+                "itemCount": 3,
+                "totalAmount": 149.99
+              }
+            },
+            {
+              "eventId": "evt-005",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T14:30:00.018Z",
+              "nodeId": "service-order-validate",
+              "spanId": "span-003",
+              "durationMs": 8,
+              "attributes": {"valid": true}
+            },
+            {
+              "eventId": "evt-006",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T14:30:00.020Z",
+              "nodeId": "service-inventory-check",
+              "spanId": "span-004",
+              "parentSpanId": "span-002"
+            },
+            {
+              "eventId": "evt-007",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T14:30:00.045Z",
+              "nodeId": "service-inventory-check",
+              "spanId": "span-004",
+              "durationMs": 25,
+              "attributes": {"available": true, "warehouse": "WH-EAST"}
+            },
+            {
+              "eventId": "evt-008",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T14:30:00.050Z",
+              "nodeId": "service-inventory-reserve",
+              "spanId": "span-005",
+              "parentSpanId": "span-002"
+            },
+            {
+              "eventId": "evt-009",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T14:30:00.080Z",
+              "nodeId": "service-inventory-reserve",
+              "spanId": "span-005",
+              "durationMs": 30,
+              "attributes": {"reservationId": "res-111222"}
+            },
+            {
+              "eventId": "evt-010",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T14:30:00.085Z",
+              "nodeId": "service-payment-process",
+              "spanId": "span-006",
+              "parentSpanId": "span-002"
+            },
+            {
+              "eventId": "evt-011",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T14:30:00.285Z",
+              "nodeId": "service-payment-process",
+              "spanId": "span-006",
+              "durationMs": 200,
+              "attributes": {
+                "paymentId": "pay-stripe-12345",
+                "amount": 149.99,
+                "currency": "USD",
+                "paymentMethod": "card_visa_4242"
+              }
+            },
+            {
+              "eventId": "evt-012",
+              "type": "PRODUCE_TOPIC",
+              "timestamp": "2025-12-05T14:30:00.290Z",
+              "nodeId": "topic-order-events",
+              "spanId": "span-007",
+              "parentSpanId": "span-002",
+              "attributes": {
+                "eventType": "ORDER_CREATED",
+                "orderId": "order-20251205-001",
+                "partition": 3
+              }
+            },
+            {
+              "eventId": "evt-013",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T14:30:00.295Z",
+              "nodeId": "service-order-process",
+              "spanId": "span-002",
+              "durationMs": 290,
+              "attributes": {
+                "orderId": "order-20251205-001",
+                "status": "CONFIRMED"
+              }
+            },
+            {
+              "eventId": "evt-014",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T14:30:00.298Z",
+              "nodeId": "endpoint-create-order",
+              "spanId": "span-001",
+              "durationMs": 298,
+              "attributes": {
+                "httpStatus": 201,
+                "responseSize": 1024
+              }
+            }
+          ],
+          "traceComplete": true,
+          "metadata": {
+            "source": "flow-runtime-plugin",
+            "hostName": "order-service-pod-abc123",
+            "podIP": "10.0.1.45",
+            "region": "us-east-1"
+          }
+        }
+      },
+      "failedPaymentFlow": {
+        "description": "Order flow that fails at payment step",
+        "request": {
+          "graphId": "ecommerce-order-service",
+          "traceId": "trace-order-payment-failed-001",
+          "events": [
+            {
+              "eventId": "evt-f01",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T15:00:00.000Z",
+              "nodeId": "endpoint-create-order",
+              "spanId": "span-f01",
+              "parentSpanId": null,
+              "attributes": {"userId": "user-999", "cartId": "cart-888"}
+            },
+            {
+              "eventId": "evt-f02",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T15:00:00.010Z",
+              "nodeId": "service-order-process",
+              "spanId": "span-f02",
+              "parentSpanId": "span-f01"
+            },
+            {
+              "eventId": "evt-f03",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T15:00:00.050Z",
+              "nodeId": "service-payment-process",
+              "spanId": "span-f03",
+              "parentSpanId": "span-f02"
+            },
+            {
+              "eventId": "evt-f04",
+              "type": "ERROR",
+              "timestamp": "2025-12-05T15:00:00.250Z",
+              "nodeId": "service-payment-process",
+              "spanId": "span-f03",
+              "errorMessage": "Payment declined by issuing bank",
+              "errorType": "PaymentDeclinedException",
+              "attributes": {
+                "declineCode": "card_declined",
+                "stripeErrorCode": "card_declined",
+                "last4": "4242"
+              }
+            },
+            {
+              "eventId": "evt-f05",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T15:00:00.255Z",
+              "nodeId": "service-payment-process",
+              "spanId": "span-f03",
+              "durationMs": 205,
+              "attributes": {"success": false, "errorHandled": true}
+            },
+            {
+              "eventId": "evt-f06",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T15:00:00.260Z",
+              "nodeId": "service-order-process",
+              "spanId": "span-f02",
+              "durationMs": 250,
+              "attributes": {"status": "PAYMENT_FAILED", "retryable": true}
+            },
+            {
+              "eventId": "evt-f07",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T15:00:00.265Z",
+              "nodeId": "endpoint-create-order",
+              "spanId": "span-f01",
+              "durationMs": 265,
+              "attributes": {"httpStatus": 402}
+            }
+          ],
+          "traceComplete": true,
+          "metadata": {"source": "flow-runtime-plugin"}
+        }
+      },
+      "inventoryOutOfStock": {
+        "description": "Order flow that fails due to out of stock items",
+        "request": {
+          "graphId": "ecommerce-order-service",
+          "traceId": "trace-order-oos-001",
+          "events": [
+            {
+              "eventId": "evt-o01",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T16:00:00.000Z",
+              "nodeId": "endpoint-create-order",
+              "spanId": "span-o01",
+              "parentSpanId": null
+            },
+            {
+              "eventId": "evt-o02",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T16:00:00.010Z",
+              "nodeId": "service-order-process",
+              "spanId": "span-o02",
+              "parentSpanId": "span-o01"
+            },
+            {
+              "eventId": "evt-o03",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T16:00:00.020Z",
+              "nodeId": "service-inventory-check",
+              "spanId": "span-o03",
+              "parentSpanId": "span-o02"
+            },
+            {
+              "eventId": "evt-o04",
+              "type": "ERROR",
+              "timestamp": "2025-12-05T16:00:00.050Z",
+              "nodeId": "service-inventory-check",
+              "spanId": "span-o03",
+              "errorMessage": "Insufficient stock for SKU-12345: requested 5, available 2",
+              "errorType": "InsufficientInventoryException",
+              "attributes": {
+                "sku": "SKU-12345",
+                "requested": 5,
+                "available": 2
+              }
+            },
+            {
+              "eventId": "evt-o05",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T16:00:00.055Z",
+              "nodeId": "service-inventory-check",
+              "spanId": "span-o03",
+              "durationMs": 35,
+              "attributes": {"available": false}
+            },
+            {
+              "eventId": "evt-o06",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T16:00:00.060Z",
+              "nodeId": "service-order-process",
+              "spanId": "span-o02",
+              "durationMs": 50,
+              "attributes": {"status": "INSUFFICIENT_INVENTORY"}
+            },
+            {
+              "eventId": "evt-o07",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T16:00:00.065Z",
+              "nodeId": "endpoint-create-order",
+              "spanId": "span-o01",
+              "durationMs": 65,
+              "attributes": {"httpStatus": 409}
+            }
+          ],
+          "traceComplete": true,
+          "metadata": {"source": "flow-runtime-plugin"}
+        }
+      },
+      "asyncNotificationFlow": {
+        "description": "Async flow triggered by Kafka consumer",
+        "request": {
+          "graphId": "notification-service",
+          "traceId": "trace-notification-001",
+          "events": [
+            {
+              "eventId": "evt-n01",
+              "type": "CONSUME_TOPIC",
+              "timestamp": "2025-12-05T14:30:00.500Z",
+              "nodeId": "topic-notifications",
+              "spanId": "span-n01",
+              "parentSpanId": null,
+              "attributes": {
+                "partition": 2,
+                "offset": 12345,
+                "key": "order-20251205-001"
+              }
+            },
+            {
+              "eventId": "evt-n02",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T14:30:00.505Z",
+              "nodeId": "consumer-notification",
+              "spanId": "span-n02",
+              "parentSpanId": "span-n01"
+            },
+            {
+              "eventId": "evt-n03",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T14:30:00.510Z",
+              "nodeId": "service-router",
+              "spanId": "span-n03",
+              "parentSpanId": "span-n02"
+            },
+            {
+              "eventId": "evt-n04",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T14:30:00.515Z",
+              "nodeId": "service-email",
+              "spanId": "span-n04",
+              "parentSpanId": "span-n03"
+            },
+            {
+              "eventId": "evt-n05",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T14:30:00.715Z",
+              "nodeId": "service-email",
+              "spanId": "span-n04",
+              "durationMs": 200,
+              "attributes": {"emailSent": true, "recipient": "user@example.com"}
+            },
+            {
+              "eventId": "evt-n06",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T14:30:00.720Z",
+              "nodeId": "service-router",
+              "spanId": "span-n03",
+              "durationMs": 210
+            },
+            {
+              "eventId": "evt-n07",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T14:30:00.725Z",
+              "nodeId": "consumer-notification",
+              "spanId": "span-n02",
+              "durationMs": 220,
+              "attributes": {"ackOffset": 12345}
+            }
+          ],
+          "traceComplete": true,
+          "metadata": {
+            "source": "flow-runtime-plugin",
+            "consumerGroup": "notification-service-group"
+          }
+        }
+      },
+      "loginFlow": {
+        "description": "User authentication login flow",
+        "request": {
+          "graphId": "user-auth-service",
+          "traceId": "trace-login-001",
+          "events": [
+            {
+              "eventId": "evt-l01",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T10:00:00.000Z",
+              "nodeId": "endpoint-login",
+              "spanId": "span-l01",
+              "parentSpanId": null,
+              "attributes": {"email": "user@example.com", "clientIp": "192.168.1.100"}
+            },
+            {
+              "eventId": "evt-l02",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T10:00:00.010Z",
+              "nodeId": "service-auth-authenticate",
+              "spanId": "span-l02",
+              "parentSpanId": "span-l01"
+            },
+            {
+              "eventId": "evt-l03",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T10:00:00.015Z",
+              "nodeId": "service-user-find",
+              "spanId": "span-l03",
+              "parentSpanId": "span-l02"
+            },
+            {
+              "eventId": "evt-l04",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T10:00:00.025Z",
+              "nodeId": "service-user-find",
+              "spanId": "span-l03",
+              "durationMs": 10,
+              "attributes": {"userFound": true, "userId": "user-12345"}
+            },
+            {
+              "eventId": "evt-l05",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T10:00:00.030Z",
+              "nodeId": "service-auth-validate-credentials",
+              "spanId": "span-l04",
+              "parentSpanId": "span-l02"
+            },
+            {
+              "eventId": "evt-l06",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T10:00:00.080Z",
+              "nodeId": "service-auth-validate-credentials",
+              "spanId": "span-l04",
+              "durationMs": 50,
+              "attributes": {"valid": true, "mfaRequired": false}
+            },
+            {
+              "eventId": "evt-l07",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T10:00:00.085Z",
+              "nodeId": "service-token-generate",
+              "spanId": "span-l05",
+              "parentSpanId": "span-l02"
+            },
+            {
+              "eventId": "evt-l08",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T10:00:00.095Z",
+              "nodeId": "service-token-generate",
+              "spanId": "span-l05",
+              "durationMs": 10,
+              "attributes": {"tokenType": "JWT", "expiresIn": 3600}
+            },
+            {
+              "eventId": "evt-l09",
+              "type": "METHOD_ENTER",
+              "timestamp": "2025-12-05T10:00:00.100Z",
+              "nodeId": "service-session-create",
+              "spanId": "span-l06",
+              "parentSpanId": "span-l02"
+            },
+            {
+              "eventId": "evt-l10",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T10:00:00.120Z",
+              "nodeId": "service-session-create",
+              "spanId": "span-l06",
+              "durationMs": 20,
+              "attributes": {"sessionId": "sess-abcd1234"}
+            },
+            {
+              "eventId": "evt-l11",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T10:00:00.125Z",
+              "nodeId": "service-auth-authenticate",
+              "spanId": "span-l02",
+              "durationMs": 115,
+              "attributes": {"authenticated": true}
+            },
+            {
+              "eventId": "evt-l12",
+              "type": "METHOD_EXIT",
+              "timestamp": "2025-12-05T10:00:00.130Z",
+              "nodeId": "endpoint-login",
+              "spanId": "span-l01",
+              "durationMs": 130,
+              "attributes": {"httpStatus": 200}
+            }
+          ],
+          "traceComplete": true,
+          "metadata": {"source": "flow-runtime-plugin"}
+        }
+      }
+    },
+    "curlCommands": {
+      "ingestStaticGraph": "curl -X POST http://localhost:8080/ingest/static -H 'Content-Type: application/json' -d @test-data/static-graph-ecommerce.json",
+      "ingestRuntimeEvents": "curl -X POST http://localhost:8080/ingest/runtime -H 'Content-Type: application/json' -d @test-data/runtime-events-success.json",
+      "listGraphs": "curl http://localhost:8080/graphs",
+      "getGraph": "curl http://localhost:8080/graphs/ecommerce-order-service",
+      "getZoomedView": "curl 'http://localhost:8080/flow/ecommerce-order-service?zoom=1'",
+      "getTrace": "curl http://localhost:8080/trace/trace-order-success-20251205-001",
+      "exportCypher": "curl 'http://localhost:8080/export/neo4j/ecommerce-order-service?mode=cypher'",
+      "deleteGraph": "curl -X DELETE http://localhost:8080/graphs/ecommerce-order-service",
+      "healthCheck": "curl http://localhost:8080/actuator/health",
+      "metrics": "curl http://localhost:8080/actuator/prometheus"
+    }
+  }
+}
+

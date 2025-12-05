@@ -1,0 +1,49 @@
+# Test configuration for Flow Core Service Integration Tests
+spring:
+  application:
+    name: flow-core-service-test
+
+# Disable unnecessary features for faster tests
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+
+# Logging - reduce noise in tests
+logging:
+  level:
+    root: WARN
+    com.flow: INFO
+    org.testcontainers: INFO
+    org.springframework.test: INFO
+
+# Flow service test configuration
+flow:
+  enabled: true
+
+  features:
+    neo4j-export-enabled: true
+    async-merge-enabled: true
+    deduplication-enabled: true
+    metrics-enabled: true
+    virtual-threads-enabled: true
+
+  ingest:
+    queue:
+      capacity: 1000
+    worker:
+      thread-count: 2
+    timeout:
+      enqueue-ms: 2000
+      poll-ms: 50
+      merge-ms: 10000
+
+  retention:
+    graph:
+      ttl-minutes: 0
+      max-count: 100
+    trace:
+      ttl-minutes: 5
+      max-count: 1000
+
