@@ -29,7 +29,6 @@
       <groupId>com.flow</groupId>
       <artifactId>flow-engine</artifactId>
       <version>${flow-engine.version}</version>
-      <optional>true</optional>
     </dependency>
 
     <!-- Spring Boot Web & REST -->

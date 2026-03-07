@@ -180,6 +180,14 @@ public class InMemoryRuntimeTraceBuffer implements RuntimeTraceBuffer {
         return toEvict.size();
     }
 
+    @Override
+    public Collection<RuntimeTrace> getIdleIncompleteTraces(long idleSinceEpochMs) {
+        return traces.values().stream()
+                .filter(t -> !t.isComplete && !t.isMerged && t.lastModifiedAtEpochMs < idleSinceEpochMs)
+                .map(MutableTrace::toImmutable)
+                .collect(Collectors.toList());
+    }
+
     // --- Private helpers ---
 
     private RuntimeEvent convertEvent(RuntimeEventIngestRequest.EventDto dto) {

@@ -29,7 +29,7 @@ public class DefaultNeo4jWriter implements Neo4jWriter {
     private final FlowConfig flowConfig;
     private final MetricsConfig metricsConfig;
 
-    @Value("${flow.neo4j.uri:bolt://localhost:7687}")
+    @Value("${flow.neo4j.uri:neo4j://127.0.0.1:7687}")
     private String neo4jUri;
 
     @Value("${flow.neo4j.username:neo4j}")
@@ -200,8 +200,18 @@ public class DefaultNeo4jWriter implements Neo4jWriter {
         int edges = 0;
 
         void incrementFor(String cypher) {
-            if (cypher.contains(NODE_MARKER)) nodes++;
-            if (cypher.contains(EDGE_MARKER)) edges++;
+            String upper = cypher.toUpperCase();
+            // Count as node if it creates/merges a node (contains :FlowNode or CREATE/MERGE with single node pattern)
+            if (cypher.contains(NODE_MARKER) ||
+                (upper.contains("CREATE (") && !upper.contains("-["))) {
+                nodes++;
+            }
+            // Count as edge if it creates/merges a relationship
+            if (cypher.contains(EDGE_MARKER) ||
+                upper.contains("]->(") ||
+                upper.contains("MERGE (") && upper.contains(")-[")) {
+                edges++;
+            }
         }
     }
 }

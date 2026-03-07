@@ -91,6 +91,16 @@ public interface RuntimeTraceBuffer {
     int evictExpired();
 
     /**
+     * Returns traces that are not yet complete and have not received new events
+     * since the given timestamp (epoch millis). Used by TraceCompletionScheduler
+     * to auto-complete idle agent traces.
+     *
+     * @param idleSinceEpochMs cutoff timestamp — traces last modified before this are "idle"
+     * @return collection of idle, not-yet-complete traces
+     */
+    Collection<RuntimeTrace> getIdleIncompleteTraces(long idleSinceEpochMs);
+
+    /**
      * Runtime trace record.
      */
     record RuntimeTrace(

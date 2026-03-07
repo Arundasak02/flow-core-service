@@ -3,7 +3,7 @@ spring:
     name: flow-core-service
   # Neo4j configuration for Spring Boot auto-configuration (health checks)
   neo4j:
-    uri: bolt://localhost:7687
+    uri: neo4j://127.0.0.1:7687
     authentication:
       username: neo4j
       password: Arundas@02
@@ -90,10 +90,12 @@ flow:
       ttl-minutes: 10
       max-count: 100000
       eviction-interval-ms: 60000
+      idle-timeout-ms: 3000           # Mark agent trace complete after 3s of no new events
+      completion-check-interval-ms: 5000  # How often TraceCompletionScheduler runs
 
   # Neo4j Configuration (when enabled)
   neo4j:
-    uri: bolt://localhost:7687
+    uri: neo4j://127.0.0.1:7687
     username: neo4j
     password: Arundas@02
 

@@ -138,13 +138,13 @@ public class MergeEngineAdapter {
 
     private List<RuntimeEvent> convertToFlowEngineEvents(RuntimeTrace trace) {
         return trace.events().stream()
-                .map(this::convertToFlowEngineEvent)
+                .map(event -> convertToFlowEngineEvent(trace.traceId(), event))
                 .toList();
     }
 
-    private RuntimeEvent convertToFlowEngineEvent(RuntimeTraceBuffer.RuntimeEvent event) {
+    private RuntimeEvent convertToFlowEngineEvent(String traceId, RuntimeTraceBuffer.RuntimeEvent event) {
         return new RuntimeEvent(
-                resolveEventId(event),
+                traceId,
                 event.timestampEpochMs(),
                 mapEventType(event.type()),
                 event.nodeId(),
@@ -154,9 +154,6 @@ public class MergeEngineAdapter {
         );
     }
 
-    private String resolveEventId(RuntimeTraceBuffer.RuntimeEvent event) {
-        return event.spanId() != null ? event.spanId() : event.eventId();
-    }
 
     private EventType mapEventType(String type) {
         if (type == null) return EventType.CHECKPOINT;

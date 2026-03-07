@@ -287,10 +287,10 @@
             },
             {
               "nodeId": "external-redis-cache",
-              "type": "EXTERNAL",
+              "type": "SERVICE",
               "name": "Redis",
               "label": "Session Cache",
-              "attributes": {"type": "cache", "host": "redis.internal"}
+              "attributes": {"type": "cache", "host": "redis.internal", "external": true}
             }
           ],
           "edges": [
@@ -299,9 +299,9 @@
             {"edgeId": "e3", "sourceNodeId": "service-auth-authenticate", "targetNodeId": "service-auth-validate-credentials", "type": "CALL"},
             {"edgeId": "e4", "sourceNodeId": "service-auth-authenticate", "targetNodeId": "service-token-generate", "type": "CALL"},
             {"edgeId": "e5", "sourceNodeId": "service-auth-authenticate", "targetNodeId": "service-session-create", "type": "CALL"},
-            {"edgeId": "e6", "sourceNodeId": "service-session-create", "targetNodeId": "external-redis-cache", "type": "CACHE_PUT"},
+            {"edgeId": "e6", "sourceNodeId": "service-session-create", "targetNodeId": "external-redis-cache", "type": "CALL"},
             {"edgeId": "e7", "sourceNodeId": "endpoint-refresh", "targetNodeId": "service-token-validate", "type": "CALL"},
-            {"edgeId": "e8", "sourceNodeId": "service-token-validate", "targetNodeId": "external-redis-cache", "type": "CACHE_GET"}
+            {"edgeId": "e8", "sourceNodeId": "service-token-validate", "targetNodeId": "external-redis-cache", "type": "CALL"}
           ],
           "metadata": {
             "application": "auth-service",

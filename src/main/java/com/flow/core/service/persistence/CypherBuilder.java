@@ -81,10 +81,19 @@ public class CypherBuilder {
 
     private List<String> buildCoreGraphStatements(String graphId, CoreGraph coreGraph,
                                                    List<String> statements) {
+        // Try flow-engine exporter first
         var cypherOutput = neo4jExporter.export(coreGraph);
         if (isValidOutput(cypherOutput)) {
             statements.addAll(splitIntoStatements(cypherOutput));
+            log.debug("Generated {} Cypher statements from flow-engine for CoreGraph: {}",
+                    statements.size(), graphId);
+            return statements;
         }
+
+        // Fallback: build statements directly from CoreGraph
+        log.debug("Flow-engine export returned empty, building statements directly for: {}", graphId);
+        statements.addAll(buildNodeStatementsFromCoreGraph(graphId, coreGraph));
+        statements.addAll(buildEdgeStatementsFromCoreGraph(graphId, coreGraph));
         log.debug("Generated {} Cypher statements for CoreGraph: {}", statements.size(), graphId);
         return statements;
     }
@@ -131,14 +140,13 @@ public class CypherBuilder {
 
     private String buildNodeCreateStatement(String graphId, CoreNode node) {
         var props = new StringBuilder();
-        appendNodeProperties(props, graphId, node);
+        appendNodeProperties(props, node);
         appendNodeMetadata(props, node);
-        return "CREATE (n%s:FlowNode {%s})".formatted(sanitizeId(node.getId()), props);
+        return "MERGE (n:FlowNode {id: '%s', graphId: '%s'}) SET n += {%s}"
+                .formatted(escape(node.getId()), escape(graphId), props);
     }
 
-    private void appendNodeProperties(StringBuilder props, String graphId, CoreNode node) {
-        props.append("id: '%s', ".formatted(escape(node.getId())));
-        props.append("graphId: '%s', ".formatted(escape(graphId)));
+    private void appendNodeProperties(StringBuilder props, CoreNode node) {
         props.append("name: '%s', ".formatted(escape(node.getName())));
         props.append("type: '%s', ".formatted(node.getType().name()));
         props.append("serviceId: '%s', ".formatted(escape(node.getServiceId())));
@@ -155,9 +163,10 @@ public class CypherBuilder {
 
     private String buildEdgeCreateStatement(String graphId, CoreEdge edge) {
         return """
-            MATCH (s:FlowNode {id: '%s', graphId: '%s'}), \
-            (t:FlowNode {id: '%s', graphId: '%s'}) \
-            CREATE (s)-[e:%s {id: '%s', executionCount: %d}]->(t)"""
+            MATCH (s:FlowNode {id: '%s', graphId: '%s'}) \
+            MATCH (t:FlowNode {id: '%s', graphId: '%s'}) \
+            MERGE (s)-[e:%s {id: '%s'}]->(t) \
+            SET e.executionCount = %d"""
                 .formatted(
                         escape(edge.getSourceId()), escape(graphId),
                         escape(edge.getTargetId()), escape(graphId),

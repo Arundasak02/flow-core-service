@@ -172,7 +172,7 @@ public class InMemoryGraphStore implements GraphStore {
         return FlowJsonModel.NodeModel.builder()
                 .id(node.getNodeId())
                 .type(resolveNodeType(node))
-                .name(node.getName())
+                .name(node.getName() != null ? node.getName() : node.getNodeId())  // fallback to nodeId
                 .data(node.getAttributes())
                 .build();
     }
