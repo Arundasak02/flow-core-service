@@ -19,7 +19,7 @@
     <java.version>21</java.version>
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
-    <lombok.version>1.18.30</lombok.version>
+    <lombok.version>1.18.42</lombok.version>
     <springdoc.version>2.3.0</springdoc.version>
     <flow-engine.version>1.0-SNAPSHOT</flow-engine.version>
   </properties>

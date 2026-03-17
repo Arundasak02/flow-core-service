@@ -149,6 +149,14 @@ class FlowCoreServiceSmokeTest {
     }
 
     @Test
+    void listTraces_returnsEmptyInitially() throws Exception {
+        mockMvc.perform(get("/trace"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray());
+    }
+
+    @Test
     void deleteGraph_nonExistent_returns204() throws Exception {
         mockMvc.perform(delete("/graphs/non-existent"))
                 .andExpect(status().isNoContent());

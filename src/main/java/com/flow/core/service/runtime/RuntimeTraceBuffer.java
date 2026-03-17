@@ -31,6 +31,13 @@ public interface RuntimeTraceBuffer {
     Optional<RuntimeTrace> getTrace(String traceId);
 
     /**
+     * Retrieves all traces in the buffer.
+     *
+     * @return collection of all traces
+     */
+    Collection<RuntimeTrace> getAllTraces();
+
+    /**
      * Retrieves all traces for a graph.
      *
      * @param graphId the graph identifier

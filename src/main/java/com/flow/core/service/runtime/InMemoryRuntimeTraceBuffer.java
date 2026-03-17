@@ -79,6 +79,13 @@ public class InMemoryRuntimeTraceBuffer implements RuntimeTraceBuffer {
     }
 
     @Override
+    public Collection<RuntimeTrace> getAllTraces() {
+        return traces.values().stream()
+                .map(MutableTrace::toImmutable)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public Collection<RuntimeTrace> getTracesForGraph(String graphId) {
         Set<String> traceIds = graphToTraces.get(graphId);
         if (traceIds == null) return Collections.emptyList();

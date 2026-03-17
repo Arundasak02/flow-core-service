@@ -14,12 +14,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
  * Controller for trace queries.
  *
- * Handles GET /trace/{traceId} for fetching trace details.
+ * Handles GET /trace for listing all trace IDs and GET /trace/{traceId} for details.
  */
 @Slf4j
 @RestController
@@ -29,6 +30,23 @@ import java.util.stream.Collectors;
 public class TraceController {
 
     private final RuntimeTraceBuffer traceBuffer;
+
+    /**
+     * Lists all trace IDs currently in the buffer.
+     */
+    @GetMapping
+    @Operation(
+            summary = "List all traces",
+            description = "Returns the IDs of all runtime traces currently in the buffer"
+    )
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "List of trace IDs")
+    public ResponseEntity<ApiResponse<List<String>>> listTraces() {
+        List<String> traceIds = traceBuffer.getAllTraces().stream()
+                .map(RuntimeTraceBuffer.RuntimeTrace::traceId)
+                .collect(Collectors.toList());
+        log.debug("Listing {} traces", traceIds.size());
+        return ResponseEntity.ok(ApiResponse.success(traceIds));
+    }
 
     /**
      * Gets trace details by ID.
@@ -120,4 +138,3 @@ public class TraceController {
                 .build();
     }
 }
-
