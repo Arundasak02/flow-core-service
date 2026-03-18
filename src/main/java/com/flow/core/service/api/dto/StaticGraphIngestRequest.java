@@ -49,6 +49,21 @@ public class StaticGraphIngestRequest {
      */
     private Map<String, Object> metadata;
 
+    /**
+     * Optional content hash used for deduplication.
+     */
+    private String graphHash;
+
+    /**
+     * Optional build timestamp provided by scanner/plugin.
+     */
+    private String buildTimestamp;
+
+    /**
+     * Optional git commit SHA from scanner/plugin.
+     */
+    private String gitCommit;
+
     @Data
     @Builder
     @NoArgsConstructor

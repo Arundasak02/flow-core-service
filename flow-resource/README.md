@@ -23,6 +23,8 @@ If any repo changes a contract, payload shape, endpoint path, or architectural d
 | 08 | [Coding Standards](08-CODING-STANDARDS.md) | Design patterns, SOLID principles, conventions, testing strategy, build order |
 | 09 | [API Reference](09-API-REFERENCE.md) | Complete REST API documentation with request/response examples |
 | 10 | [Roadmap](10-ROADMAP.md) | Current status, strategic priorities, SaaS milestones, key decisions |
+| 11 | [Gap Analysis & Detailed Roadmap](11-GAP-ANALYSIS-AND-DETAILED-ROADMAP.md) | Audit results, PetClinic validation, low-level checklist, brainstorm points |
+| 12 | [Deferred Feature Tracker](12-FEATURE-TRACKER.md) | Features intentionally deferred as separate tracks (including CI/CD graph push) |
 
 ---
 

@@ -154,6 +154,7 @@ public class GraphController {
                 .lastUpdatedAt(extractLastUpdatedAt(metadata))
                 .hasRuntimeData(extractHasRuntimeData(metadata))
                 .traceCount(extractTraceCount(metadata))
+                .metadata(extractGraphMetadata(metadata))
                 .build();
     }
 
@@ -194,6 +195,7 @@ public class GraphController {
                 .hasRuntimeData(extractHasRuntimeData(metadata))
                 .nodes(convertCoreNodes(coreGraph))
                 .edges(convertCoreEdges(coreGraph))
+                .metadata(extractGraphMetadata(metadata))
                 .build();
     }
 
@@ -302,6 +304,27 @@ public class GraphController {
 
     private int extractTraceCount(Optional<GraphMetadata> metadata) {
         return metadata.map(GraphMetadata::traceCount).orElse(0);
+    }
+
+    private Map<String, Object> extractGraphMetadata(Optional<GraphMetadata> metadata) {
+        if (metadata.isEmpty()) {
+            return null;
+        }
+        GraphMetadata m = metadata.get();
+        Map<String, Object> combined = new HashMap<>();
+        if (m.metadata() != null) {
+            combined.putAll(m.metadata());
+        }
+        putIfPresent(combined, "graphHash", m.graphHash());
+        putIfPresent(combined, "buildTimestamp", m.buildTimestamp());
+        putIfPresent(combined, "gitCommit", m.gitCommit());
+        return combined.isEmpty() ? null : combined;
+    }
+
+    private void putIfPresent(Map<String, Object> map, String key, String value) {
+        if (value != null && !value.isBlank()) {
+            map.put(key, value);
+        }
     }
 
     // ==================== Utility Methods ====================
