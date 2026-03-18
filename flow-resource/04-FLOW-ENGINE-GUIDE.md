@@ -7,7 +7,7 @@
 
 ## What It Is
 
-`flow-engine` is a **pure Java library** (no Spring, no HTTP, no frameworks) that provides core graph processing for the Flow platform. It is embedded as a Maven dependency by `flow-core-service`.
+`flow-engine` is the **language-agnostic brain** of the Flow platform — a pure Java library (no Spring, no HTTP, no frameworks) that processes graphs regardless of what language or adapter produced them. It is embedded as a Maven dependency by `flow-core-service`.
 
 ```xml
 <dependency>
@@ -18,6 +18,9 @@
 ```
 
 **Requirements:** Java 17+, Jackson Databind (transitive)
+
+> **Language-agnostic:** The engine operates on `CoreGraph` objects (nodes + edges). It does not know or care
+> whether those nodes came from a Java scanner, a Python scanner, or a Go scanner. The GEF format is the contract.
 
 ---
 

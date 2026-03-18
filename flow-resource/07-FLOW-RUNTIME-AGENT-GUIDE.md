@@ -7,11 +7,13 @@
 
 ## What It Is
 
-A **Java agent** (`-javaagent:flow-agent.jar`) that observes method executions inside a customer's JVM and sends lightweight events to Flow Core Service so the static architecture graph can be animated in real time.
+The **first language-specific runtime agent** for the Flow platform. A Java agent (`-javaagent:flow-agent.jar`) that observes method executions inside a customer's JVM and sends lightweight events to Flow Core Service so the static architecture graph can be animated in real time — with business context at every checkpoint.
 
-**One sentence:** *The bridge between a running Java application and the Flow architecture graph.*
+**One sentence:** *The bridge between a running Java application and the Flow architecture graph — making code execution visible and meaningful.*
 
 **Type:** `-javaagent` shaded JAR | **Java:** 11+ (customer JVM compatibility) | **Instrumentation:** ByteBuddy
+
+> **Language Strategy:** This is the JVM agent. Future agents for Python (`sys.settrace`/`sys.monitoring`), Node.js (`async_hooks`), and Go (eBPF/instrumentation) will follow the same event protocol and ship to the same FCS endpoints. The core service and engine are language-agnostic.
 
 ---
 
@@ -155,14 +157,18 @@ flow:
 
 ## Phased Delivery
 
-| Phase | Scope |
-|-------|-------|
-| **Phase 1** | Method-level tracing — enter/exit/error events for customer code |
-| **Phase 2** | OTel bridge — external systems (DB, Redis, Kafka) via OpenTelemetry |
-| **Phase 3** | Checkpoint SDK — `Flow.checkpoint(key, value)` |
-| **Phase 4** | Cross-service + async — W3C traceparent, @Async wrapping |
-| **Phase 5** | Production hardening — adaptive sampling, TLS, benchmarks |
-| **Phase 6** | Advanced — virtual threads (ScopedValue), dynamic attach, remote config |
+| Phase | Scope | Status |
+|-------|-------|--------|
+| **Phase 1** | Method-level tracing — enter/exit/error events for customer code | Done |
+| **Phase 2** | Checkpoint SDK — `Flow.checkpoint(key, value)` + variable capture with PII safety | **Next** |
+| **Phase 3** | OTel bridge — external systems (DB, Redis, Kafka) via OpenTelemetry | Planned |
+| **Phase 4** | Production hardening — adaptive sampling, TLS, JMH benchmarks, < 3% overhead proof | Planned |
+| **Phase 5** | Cross-service + async — W3C traceparent, @Async, CompletableFuture wrapping | Planned |
+| **Phase 6** | Advanced — virtual threads (ScopedValue), dynamic attach, remote config | Future |
+
+> **Why Checkpoint SDK moved to Phase 2:** Business context at checkpoints is the core differentiator of Flow.
+> It's the feature that makes Flow more than a tracing tool. Without it, the graph is technically accurate
+> but business-meaningless. This must ship early.
 
 ---
 

@@ -18,9 +18,16 @@
 ### Clean Architecture
 
 - Business logic (`flow-engine`) is decoupled from infrastructure (`flow-core-service`)
+- The engine is language-agnostic — it processes graphs without knowing what language produced them
 - The engine can be embedded in any Java application
 - The service can swap persistence layers without touching business logic
 - Independent versioning and testing
+
+### Language-Agnostic Core
+
+- Core contracts (GEF format, event protocol) are defined independently of any language
+- Language-specific logic lives only in adapters and agents, never in the engine or service
+- New language support = new adapter repo + new agent repo. Zero changes to core.
 
 ---
 
