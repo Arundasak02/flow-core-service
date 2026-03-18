@@ -4,7 +4,6 @@ import com.flow.core.service.api.dto.AgentBatchIngestRequest;
 import com.flow.core.service.api.dto.ApiResponse;
 import com.flow.core.service.api.dto.RuntimeEventIngestRequest;
 import com.flow.core.service.config.IngestionConfig;
-import com.flow.core.service.engine.GraphStore;
 import com.flow.core.service.ingest.IngestionQueue;
 import com.flow.core.service.ingest.IngestionWorkItem;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,7 +34,6 @@ import java.util.stream.Collectors;
 public class RuntimeIngestController {
 
     private final IngestionQueue ingestionQueue;
-    private final GraphStore graphStore;
     private final IngestionConfig config;
 
     /**
@@ -63,16 +61,6 @@ public class RuntimeIngestController {
 
         log.debug("Received runtime event ingestion: traceId={}, graphId={}, eventCount={}",
                 traceId, graphId, request.getEvents().size());
-
-        // Validate graph exists
-        if (!graphStore.exists(graphId)) {
-            log.warn("Graph not found for runtime events: {}", graphId);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error(
-                            "Graph not found: " + graphId,
-                            "GRAPH_NOT_FOUND"
-                    ));
-        }
 
         // Create work item
         IngestionWorkItem.RuntimeEventWorkItem workItem = new IngestionWorkItem.RuntimeEventWorkItem(
@@ -125,13 +113,6 @@ public class RuntimeIngestController {
         String graphId = request.getGraphId();
         log.debug("Received agent batch: graphId={}, eventCount={}", graphId, request.getBatch().size());
 
-        // Validate graph exists
-        if (!graphStore.exists(graphId)) {
-            log.warn("Graph not found for agent batch: {}", graphId);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error("Graph not found: " + graphId, "GRAPH_NOT_FOUND"));
-        }
-
         // Group events by traceId
         Map<String, List<AgentBatchIngestRequest.AgentEventDto>> byTrace = request.getBatch().stream()
                 .filter(e -> e.getTraceId() != null)
@@ -162,17 +143,41 @@ public class RuntimeIngestController {
             String graphId, String traceId, List<AgentBatchIngestRequest.AgentEventDto> agentEvents) {
 
         List<RuntimeEventIngestRequest.EventDto> events = agentEvents.stream()
-                .map(ae -> RuntimeEventIngestRequest.EventDto.builder()
-                        .eventId(ae.getSpanId() + "-" + ae.getType())
-                        .type(ae.getType())
-                        .timestamp(Instant.ofEpochMilli(ae.getTimestamp()))
-                        .nodeId(ae.getNodeId())
-                        .spanId(ae.getSpanId())
-                        .parentSpanId(ae.getParentSpanId())
-                        .durationMs(ae.getDurationMs())
-                        .errorType(ae.getErrorType())
-                        .attributes(ae.getData())
-                        .build())
+                .map(ae -> {
+                    // Deduplication uses eventId when present; for CHECKPOINT events we can receive a null spanId
+                    // (e.g., when the controller entrypoint isn't instrumented), so we must include more
+                    // entropy to avoid collapsing multiple checkpoints into the same eventId.
+                    String spanId = ae.getSpanId();
+                    String type = ae.getType();
+                    String nodeId = ae.getNodeId();
+                    long timestamp = ae.getTimestamp();
+                    Map<String, Object> attributes = ae.getData();
+
+                    // For checkpoint events, we also include the *attribute key names* (not values) to avoid
+                    // dropping multiple checkpoints emitted within the same millisecond.
+                    // Example: {"ownerId": 12} vs {"ownerCity": "Springfield"}.
+                    boolean isCheckpoint = type != null && "CHECKPOINT".equalsIgnoreCase(type);
+                    String checkpointKeyEntropy = "";
+                    if (isCheckpoint && attributes != null && !attributes.isEmpty()) {
+                        checkpointKeyEntropy = new java.util.TreeSet<>(attributes.keySet()).toString();
+                    }
+
+                    String eventId = (spanId != null && !spanId.isBlank())
+                            ? spanId + "-" + type + "-" + timestamp + "-" + nodeId + "-" + checkpointKeyEntropy
+                            : "NO_SPAN-" + type + "-" + timestamp + "-" + nodeId + "-" + checkpointKeyEntropy;
+
+                    return RuntimeEventIngestRequest.EventDto.builder()
+                            .eventId(eventId)
+                            .type(type)
+                            .timestamp(Instant.ofEpochMilli(timestamp))
+                            .nodeId(nodeId)
+                            .spanId(spanId)
+                            .parentSpanId(ae.getParentSpanId())
+                            .durationMs(ae.getDurationMs())
+                            .errorType(ae.getErrorType())
+                            .attributes(ae.getData())
+                            .build();
+                })
                 .toList();
 
         boolean traceComplete = agentEvents.stream().anyMatch(ae ->

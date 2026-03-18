@@ -2,6 +2,7 @@ package com.flow.core.service.ingest;
 
 import com.flow.core.service.api.dto.StaticGraphIngestRequest;
 import com.flow.core.service.config.MetricsConfig;
+import com.flow.core.service.engine.MergeEngineAdapter;
 import com.flow.core.service.engine.GraphStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 public class StaticGraphHandler implements IngestionHandler<IngestionWorkItem.StaticGraphWorkItem> {
 
     private final GraphStore graphStore;
+    private final MergeEngineAdapter mergeEngineAdapter;
     private final MetricsConfig metricsConfig;
 
     @Override
@@ -34,6 +36,10 @@ public class StaticGraphHandler implements IngestionHandler<IngestionWorkItem.St
 
             // Delegate to GraphStore which will use flow-engine
             graphStore.ingestStaticGraph(graphId, request);
+
+            // Once the static graph exists, merge any already-ingested completed traces.
+            // This decouples runtime ingestion from build-time publishing order.
+            mergeEngineAdapter.mergePendingTraces(graphId);
 
             metricsConfig.getStaticGraphsIngested().increment();
             log.info("Static graph ingested successfully: {}", graphId);

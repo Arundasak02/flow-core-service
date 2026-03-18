@@ -36,15 +36,6 @@ public class RuntimeEventHandler implements IngestionHandler<IngestionWorkItem.R
         try {
             log.debug("Processing runtime events: traceId={}, graphId={}", traceId, graphId);
 
-            // Validate graph exists
-            if (!graphStore.exists(graphId)) {
-                throw new IngestionException(
-                        "Graph not found: " + graphId,
-                        traceId,
-                        "GRAPH_NOT_FOUND"
-                );
-            }
-
             // Convert and process events
             RuntimeEventIngestRequest request = convertPayload(payload);
             traceBuffer.addEvents(traceId, graphId, request.getEvents());
@@ -55,7 +46,11 @@ public class RuntimeEventHandler implements IngestionHandler<IngestionWorkItem.R
             if (traceComplete) {
                 log.debug("Trace complete, marking and triggering merge: {}", traceId);
                 traceBuffer.markComplete(traceId);
-                triggerMergeAsync(traceId, graphId);
+                // If the static graph hasn't arrived yet, merge will be triggered automatically
+                // when the static graph is ingested.
+                if (graphStore.exists(graphId)) {
+                    triggerMergeAsync(traceId, graphId);
+                }
             }
 
             log.debug("Runtime events processed: traceId={}, eventCount={}",

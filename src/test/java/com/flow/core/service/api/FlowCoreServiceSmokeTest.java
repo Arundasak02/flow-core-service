@@ -110,7 +110,7 @@ class FlowCoreServiceSmokeTest {
     }
 
     @Test
-    void ingestRuntimeEvents_graphNotFound_returns404() throws Exception {
+    void ingestRuntimeEvents_graphNotFound_returnsAccepted() throws Exception {
         RuntimeEventIngestRequest request = RuntimeEventIngestRequest.builder()
                 .graphId("non-existent-graph")
                 .traceId("trace-1")
@@ -127,9 +127,9 @@ class FlowCoreServiceSmokeTest {
         mockMvc.perform(post("/ingest/runtime")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("GRAPH_NOT_FOUND"));
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").value("trace-1"));
     }
 
     @Test
