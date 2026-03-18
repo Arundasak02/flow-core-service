@@ -12,7 +12,6 @@ import com.flow.core.service.api.dto.StaticGraphIngestRequest;
 import com.flow.core.service.engine.FlowExtractorAdapter;
 import com.flow.core.service.engine.GraphStore;
 import com.flow.core.service.engine.GraphStore.GraphMetadata;
-import com.flow.core.service.engine.InMemoryGraphStore;
 import com.flow.core.service.runtime.RuntimeTraceBuffer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -338,10 +337,12 @@ public class GraphController {
     }
 
     private String extractGraphId(CoreGraph coreGraph) {
-        return ((InMemoryGraphStore) graphStore).getAllEntries().stream()
-                .filter(entry -> entry.graph() == coreGraph)
-                .findFirst()
-                .map(InMemoryGraphStore.GraphEntry::graphId)
-                .orElse(UNKNOWN_GRAPH_ID);
+        for (String graphId : graphStore.getAllGraphIds()) {
+            Object graph = graphStore.findById(graphId).orElse(null);
+            if (graph == coreGraph) {
+                return graphId;
+            }
+        }
+        return UNKNOWN_GRAPH_ID;
     }
 }

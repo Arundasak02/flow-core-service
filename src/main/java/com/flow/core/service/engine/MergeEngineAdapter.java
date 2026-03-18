@@ -138,6 +138,7 @@ public class MergeEngineAdapter {
 
     private List<RuntimeEvent> convertToFlowEngineEvents(RuntimeTrace trace) {
         return trace.events().stream()
+                .filter(event -> event.nodeId() != null && !event.nodeId().isBlank())
                 .map(event -> convertToFlowEngineEvent(trace.traceId(), event))
                 .toList();
     }

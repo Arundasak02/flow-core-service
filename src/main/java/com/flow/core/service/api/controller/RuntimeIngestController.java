@@ -143,9 +143,10 @@ public class RuntimeIngestController {
             List<AgentBatchIngestRequest.AgentEventDto> events = entry.getValue();
 
             RuntimeEventIngestRequest internalRequest = convertAgentBatch(graphId, traceId, events);
+            boolean traceComplete = internalRequest.isTraceComplete();
 
             IngestionWorkItem.RuntimeEventWorkItem workItem = new IngestionWorkItem.RuntimeEventWorkItem(
-                    traceId, graphId, internalRequest, false
+                    traceId, graphId, internalRequest, traceComplete
             );
 
             boolean enqueued = ingestionQueue.enqueue(workItem, config.getTimeout().getEnqueueMs());
@@ -174,11 +175,15 @@ public class RuntimeIngestController {
                         .build())
                 .toList();
 
+        boolean traceComplete = agentEvents.stream().anyMatch(ae ->
+                "METHOD_EXIT".equalsIgnoreCase(ae.getType()) && (ae.getParentSpanId() == null || ae.getParentSpanId().isBlank())
+        );
+
         return RuntimeEventIngestRequest.builder()
                 .graphId(graphId)
                 .traceId(traceId)
                 .events(events)
-                .traceComplete(false)
+                .traceComplete(traceComplete)
                 .build();
     }
 }

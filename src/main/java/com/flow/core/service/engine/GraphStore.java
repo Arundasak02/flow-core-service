@@ -37,6 +37,11 @@ public interface GraphStore {
     Collection<Object> findAll();
 
     /**
+     * Retrieves all graphIds currently stored.
+     */
+    java.util.Set<String> getAllGraphIds();
+
+    /**
      * Checks if a graph exists.
      *
      * @param graphId the graph identifier
