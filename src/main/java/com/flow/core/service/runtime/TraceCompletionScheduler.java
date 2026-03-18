@@ -16,7 +16,7 @@ import java.util.Collection;
  *
  * <p>This is necessary because flow-runtime-agent does not send an explicit
  * "trace complete" signal — traces are considered done when no new events
- * arrive for {@code flow.trace.idle-timeout-ms} milliseconds.</p>
+ * arrive for {@code flow.retention.trace.idle-timeout-ms} milliseconds.</p>
  */
 @Slf4j
 @Component
@@ -30,13 +30,13 @@ public class TraceCompletionScheduler {
      * How long (ms) a trace must be idle before it is auto-completed.
      * Default: 3000 ms (3 seconds).
      */
-    @Value("${flow.trace.idle-timeout-ms:3000}")
+    @Value("${flow.retention.trace.idle-timeout-ms:3000}")
     private long idleTimeoutMs;
 
     /**
      * Every 5 seconds, check for idle incomplete traces and trigger their merge.
      */
-    @Scheduled(fixedDelayString = "${flow.trace.completion-check-interval-ms:5000}")
+    @Scheduled(fixedDelayString = "${flow.retention.trace.completion-check-interval-ms:5000}")
     public void checkIdleTraces() {
         long cutoff = Instant.now().toEpochMilli() - idleTimeoutMs;
         Collection<RuntimeTraceBuffer.RuntimeTrace> idleTraces = traceBuffer.getIdleIncompleteTraces(cutoff);

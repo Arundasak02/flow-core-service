@@ -14,6 +14,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -23,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Comparator;
 
 /**
  * In-memory implementation of GraphStore.
@@ -66,6 +68,55 @@ public class InMemoryGraphStore implements GraphStore {
                 retentionConfig.getGraph().getMaxCount());
     }
 
+    @Scheduled(fixedDelayString = "${flow.retention.graph.eviction-interval-ms:300000}")
+    public void evictIfNeeded() {
+        evictByTtlIfEnabled();
+        evictByMaxCountIfNeeded();
+    }
+
+    private void evictByTtlIfEnabled() {
+        long ttlMinutes = retentionConfig.getGraph().getTtlMinutes();
+        if (ttlMinutes <= 0) return;
+
+        long cutoffEpochMs = Instant.now().toEpochMilli() - (ttlMinutes * 60_000L);
+        int evicted = 0;
+        for (var entry : graphs.entrySet()) {
+            GraphEntry ge = entry.getValue();
+            if (ge != null && ge.lastUpdatedAtEpochMs() < cutoffEpochMs) {
+                if (delete(entry.getKey())) {
+                    evicted++;
+                }
+            }
+        }
+        if (evicted > 0) {
+            log.info("Evicted {} graphs by TTL (ttlMinutes={})", evicted, ttlMinutes);
+        }
+    }
+
+    private void evictByMaxCountIfNeeded() {
+        int maxCount = retentionConfig.getGraph().getMaxCount();
+        if (maxCount <= 0) return;
+        int current = graphs.size();
+        if (current <= maxCount) return;
+
+        int toEvict = current - maxCount;
+        var victims = graphs.values().stream()
+                .sorted(Comparator.comparingLong(GraphEntry::lastUpdatedAtEpochMs))
+                .limit(toEvict)
+                .map(GraphEntry::graphId)
+                .toList();
+
+        int evicted = 0;
+        for (String graphId : victims) {
+            if (delete(graphId)) {
+                evicted++;
+            }
+        }
+        if (evicted > 0) {
+            log.warn("Evicted {} graphs by maxCount (maxCount={}, before={})", evicted, maxCount, current);
+        }
+    }
+
     // ==================== GraphStore Interface ====================
 
     @Override
@@ -97,6 +148,11 @@ public class InMemoryGraphStore implements GraphStore {
         return graphs.values().stream()
                 .map(GraphEntry::graph)
                 .toList();
+    }
+
+    @Override
+    public java.util.Set<String> getAllGraphIds() {
+        return java.util.Set.copyOf(graphs.keySet());
     }
 
     @Override
