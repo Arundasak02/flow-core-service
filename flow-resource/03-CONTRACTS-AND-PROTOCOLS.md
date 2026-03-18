@@ -3,6 +3,11 @@
 **Status:** Authoritative source of truth
 **Scope:** Critical cross-repo contracts that must never be broken without coordinated changes
 
+> **Language Note:** These contracts are language-agnostic at the protocol level. The GEF format and event payload
+> shape are identical regardless of which language's adapter/agent produced them. Language-specific details
+> (e.g., Java nodeId format) are noted as examples — each language adapter defines its own nodeId construction
+> rules while conforming to the same structural contract.
+
 ---
 
 ## 1. The graphId Contract
@@ -123,9 +128,35 @@ Authorization: Bearer {api-key}
 | `METHOD_ENTER` | Method begins | Always `0` | `null` |
 | `METHOD_EXIT` | Method completes normally | Actual ms | `null` |
 | `ERROR` | Method throws exception | Actual ms | Exception class name |
-| `PRODUCE_TOPIC` | Kafka message produced (Phase 2) | `0` | `null` |
-| `CONSUME_TOPIC` | Kafka message consumed (Phase 2) | `0` | `null` |
-| `CHECKPOINT` | Developer checkpoint (Phase 3) | `0` | `null` |
+| `PRODUCE_TOPIC` | Kafka message produced | `0` | `null` |
+| `CONSUME_TOPIC` | Kafka message consumed | `0` | `null` |
+| `CHECKPOINT` | Developer checkpoint (`Flow.checkpoint(key, value)`) | `0` | `null` |
+| `VARIABLE_CAPTURE` | Runtime variable snapshot at checkpoint (planned) | `0` | `null` |
+
+### Checkpoint & Variable Capture Payload (Planned)
+
+When a developer calls `Flow.checkpoint("cart_validated", cartData)`, the agent emits:
+
+```json
+{
+  "traceId": "550e8400-e29b-41d4-a716-446655440000",
+  "spanId": "7a2b3c4d5e6f",
+  "nodeId": "com.greens.order.core.OrderService#validateCart(String):void",
+  "type": "CHECKPOINT",
+  "timestamp": 1735412200200,
+  "data": {
+    "key": "cart_validated",
+    "businessLabel": "Cart validation completed",
+    "captures": {
+      "cartTotal": 250.50,
+      "itemCount": 3,
+      "customerId": "***REDACTED***"
+    }
+  }
+}
+```
+
+**PII Rules:** Fields matching `@FlowExclude` annotations or global patterns (`*password*`, `*email*`, `*ssn*`) are redacted at the agent before transmission. Only `@FlowInclude` or explicitly captured fields are sent.
 
 ---
 

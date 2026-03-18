@@ -7,12 +7,14 @@
 
 ## What It Is
 
-Flow Core Service (FCS) is the **central Spring Boot microservice** that:
-- Receives static graphs at build time from Flow Adapter
-- Receives runtime events at execution time from Flow Runtime Agent
+Flow Core Service (FCS) is the **central, language-agnostic SaaS microservice** that:
+- Receives static graphs from any language's adapter (Java first, Python/Go/Node.js planned)
+- Receives runtime events from any runtime's agent (JVM first, others planned)
 - Serves queries to Flow UI and other tools
-- Merges static + runtime into enriched graphs
+- Merges static + runtime into enriched graphs with business context
 - Exports graphs to Neo4j and other formats
+
+FCS does not know what language produced a graph or event. It works with GEF format and the event protocol.
 
 **Version:** 0.0.1-SNAPSHOT | **Java:** 21 | **Spring Boot:** 3.2 | **Build:** Maven
 

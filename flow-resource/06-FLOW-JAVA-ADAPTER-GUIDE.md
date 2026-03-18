@@ -7,9 +7,13 @@
 
 ## What It Is
 
-A multi-module Maven CLI tool that **scans Java source code** (Spring MVC + Kafka) and extracts an architectural graph into `flow.json` for ingestion by Flow Core Service.
+The **first language-specific adapter** for the Flow platform. A multi-module Maven CLI tool that scans Java source code (Spring MVC + Kafka) and extracts an architectural graph into `flow.json` (GEF format) for ingestion by Flow Core Service.
 
 **Type:** Shaded JAR (single executable) | **Java:** 17
+
+> **Language Strategy:** This is the Java adapter. Future adapters for Python (AST module), Node.js (TypeScript compiler API),
+> and Go (go/ast) will produce the same GEF output format. The core service and engine are language-agnostic —
+> they process any adapter's output identically.
 
 ---
 
@@ -114,6 +118,7 @@ Produces a **GEF 1.1** JSON file. See `03-CONTRACTS-AND-PROTOCOLS.md` for the fu
 ## Design Principles
 
 - Framework-agnostic static parsing — no Spring dependencies at compile time
-- Plugin extensibility via SPI — new scanners added without modifying core
+- Plugin extensibility via SPI — new framework scanners added without modifying core
 - Each module declares only its required dependencies (no transitive bloat)
-- Output is a clean JSON graph suitable for architecture visualization tools
+- Output is GEF JSON — the universal exchange format consumed by the language-agnostic core
+- Node IDs must exactly match what the corresponding runtime agent produces (the nodeId contract)
