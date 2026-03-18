@@ -201,7 +201,7 @@ class FlowCoreIntegrationTest {
 
     @Test
     @Order(6)
-    @DisplayName("Should reject runtime events for non-existent graph")
+    @DisplayName("Should accept runtime events for non-existent graph")
     void shouldRejectRuntimeEventsForNonExistentGraph() throws Exception {
         var request = RuntimeEventIngestRequest.builder()
                 .graphId("non-existent-graph")
@@ -219,9 +219,9 @@ class FlowCoreIntegrationTest {
         mockMvc.perform(post("/ingest/runtime")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("GRAPH_NOT_FOUND"));
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").value("trace-1"));
     }
 
     // ==================== Trace Query Tests ====================

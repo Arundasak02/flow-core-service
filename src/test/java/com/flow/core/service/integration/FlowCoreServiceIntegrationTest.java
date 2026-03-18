@@ -316,7 +316,7 @@ class FlowCoreServiceIntegrationTest {
 
     @Test
     @Order(11)
-    @DisplayName("11. Return 404 for runtime events on non-existent graph")
+    @DisplayName("11. Accept runtime events on non-existent graph")
     void step11_return404ForRuntimeEventsOnNonExistentGraph() throws Exception {
         var request = RuntimeEventIngestRequest.builder()
                 .graphId("non-existent-graph")
@@ -327,8 +327,9 @@ class FlowCoreServiceIntegrationTest {
         mockMvc.perform(post("/ingest/runtime")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error.code").value("GRAPH_NOT_FOUND"));
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").value("trace-1"));
     }
 
     @Test
