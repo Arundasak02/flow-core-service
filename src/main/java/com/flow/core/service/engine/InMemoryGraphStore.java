@@ -72,8 +72,15 @@ public class InMemoryGraphStore implements GraphStore {
     public void ingestStaticGraph(String graphId, StaticGraphIngestRequest request) {
         log.debug("Ingesting static graph: {}", graphId);
 
+        String incomingHash = resolveGraphHash(request);
+        var existing = graphs.get(graphId);
+        if (existing != null && incomingHash != null && incomingHash.equals(existing.graphHash())) {
+            log.info("Static graph unchanged, skipping re-ingest: {} hash={}", graphId, incomingHash);
+            return;
+        }
+
         var coreGraph = convertToFlowEngineGraph(request);
-        var entry = createGraphEntry(graphId, request, coreGraph);
+        var entry = createGraphEntry(graphId, request, coreGraph, incomingHash);
 
         storeGraph(graphId, entry);
         logIngestion(graphId, entry);
@@ -207,11 +214,16 @@ public class InMemoryGraphStore implements GraphStore {
     // ==================== Entry Management ====================
 
     private GraphEntry createGraphEntry(String graphId, StaticGraphIngestRequest request,
-                                        CoreGraph coreGraph) {
+                                        CoreGraph coreGraph,
+                                        String graphHash) {
         var now = currentTimestamp();
         return new GraphEntry(
                 graphId,
                 request.getVersion(),
+                graphHash,
+                request.getBuildTimestamp(),
+                request.getGitCommit(),
+                request.getMetadata(),
                 coreGraph,
                 coreGraph.getNodeCount(),
                 coreGraph.getEdgeCount(),
@@ -226,6 +238,10 @@ public class InMemoryGraphStore implements GraphStore {
         return new GraphEntry(
                 existing.graphId(),
                 existing.version(),
+                existing.graphHash(),
+                existing.buildTimestamp(),
+                existing.gitCommit(),
+                existing.metadata(),
                 mergedGraph,
                 counts.nodeCount(),
                 counts.edgeCount(),
@@ -244,12 +260,16 @@ public class InMemoryGraphStore implements GraphStore {
         return new GraphMetadata(
                 entry.graphId(),
                 entry.version(),
+                entry.graphHash(),
+                entry.buildTimestamp(),
+                entry.gitCommit(),
                 entry.nodeCount(),
                 entry.edgeCount(),
                 entry.createdAtEpochMs(),
                 entry.lastUpdatedAtEpochMs(),
                 entry.hasRuntimeData(),
-                getTraceCount(graphId)
+                getTraceCount(graphId),
+                entry.metadata()
         );
     }
 
@@ -281,6 +301,19 @@ public class InMemoryGraphStore implements GraphStore {
         return traceCounters.getOrDefault(graphId, new AtomicInteger(0)).get();
     }
 
+    private String resolveGraphHash(StaticGraphIngestRequest request) {
+        if (request.getGraphHash() != null && !request.getGraphHash().isBlank()) {
+            return request.getGraphHash();
+        }
+        if (request.getMetadata() != null) {
+            Object hash = request.getMetadata().get("graphHash");
+            if (hash instanceof String s && !s.isBlank()) {
+                return s;
+            }
+        }
+        return null;
+    }
+
     private long currentTimestamp() {
         return Instant.now().toEpochMilli();
     }
@@ -300,6 +333,10 @@ public class InMemoryGraphStore implements GraphStore {
     public record GraphEntry(
             String graphId,
             String version,
+            String graphHash,
+            String buildTimestamp,
+            String gitCommit,
+            Map<String, Object> metadata,
             Object graph,
             int nodeCount,
             int edgeCount,

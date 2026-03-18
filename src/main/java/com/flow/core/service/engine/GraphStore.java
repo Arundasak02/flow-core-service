@@ -81,12 +81,16 @@ public interface GraphStore {
     record GraphMetadata(
             String graphId,
             String version,
+            String graphHash,
+            String buildTimestamp,
+            String gitCommit,
             int nodeCount,
             int edgeCount,
             long createdAtEpochMs,
             long lastUpdatedAtEpochMs,
             boolean hasRuntimeData,
-            int traceCount
+            int traceCount,
+            java.util.Map<String, Object> metadata
     ) {}
 }
 
