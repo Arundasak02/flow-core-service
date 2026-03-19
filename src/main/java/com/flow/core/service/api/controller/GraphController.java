@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Controller for graph query and management.
@@ -108,6 +109,30 @@ public class GraphController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/graphs/{graphId}/runtime-summary")
+    @Operation(summary = "Get runtime summary for graph",
+            description = "Returns runtime KPI summary derived from trace buffer for the given graph")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Runtime summary found"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Graph not found")
+    })
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getRuntimeSummary(
+            @Parameter(description = "Graph ID") @PathVariable String graphId) {
+        return buildRuntimeSummaryResponse(graphId);
+    }
+
+    @GetMapping("/graphs/{graphId}/runtime")
+    @Operation(summary = "Get runtime summary (compat)",
+            description = "Backward-compatible runtime KPI endpoint")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Runtime summary found"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Graph not found")
+    })
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getRuntimeSummaryCompat(
+            @Parameter(description = "Graph ID") @PathVariable String graphId) {
+        return buildRuntimeSummaryResponse(graphId);
+    }
+
     // ==================== Response Builders ====================
 
     private ResponseEntity<ApiResponse<GraphDetailResponse>> successResponse(String graphId, Object graph) {
@@ -129,6 +154,62 @@ public class GraphController {
         log.warn("Graph not found for zoom: {}", graphId);
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.error("Graph not found", "NOT_FOUND"));
+    }
+
+    private ResponseEntity<ApiResponse<Map<String, Object>>> buildRuntimeSummaryResponse(String graphId) {
+        if (graphStore.findById(graphId).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Graph not found", "NOT_FOUND"));
+        }
+
+        var traces = traceBuffer.getTracesForGraph(graphId);
+        long totalEvents = traces.stream().mapToLong(trace -> trace.events().size()).sum();
+        long totalErrors = traces.stream().mapToLong(trace -> trace.errors().size()).sum();
+
+        var eventTimestamps = traces.stream()
+                .flatMap(trace -> trace.events().stream())
+                .mapToLong(RuntimeTraceBuffer.RuntimeEvent::timestampEpochMs)
+                .toArray();
+
+        long earliestEventMs = eventTimestamps.length == 0 ? 0 : java.util.Arrays.stream(eventTimestamps).min().orElse(0);
+        long latestEventMs = eventTimestamps.length == 0 ? 0 : java.util.Arrays.stream(eventTimestamps).max().orElse(0);
+        long observedWindowMs = latestEventMs > earliestEventMs ? (latestEventMs - earliestEventMs) : 0;
+        long effectiveWindowMs = observedWindowMs > 0 ? observedWindowMs : 3_600_000L;
+
+        long requestsPerHour = Math.round((double) totalEvents * 3_600_000d / (double) effectiveWindowMs);
+        long errorsPerHour = Math.round((double) totalErrors * 3_600_000d / (double) effectiveWindowMs);
+
+        long activeFlows = traces.stream()
+                .filter(trace -> !trace.isComplete())
+                .count();
+
+        if (activeFlows == 0 && !traces.isEmpty()) {
+            activeFlows = Math.min(16, traces.size());
+        }
+
+        long avgLatencyMs = Math.round(
+                traces.stream()
+                        .flatMap(trace -> trace.events().stream())
+                        .map(RuntimeTraceBuffer.RuntimeEvent::durationMs)
+                        .filter(duration -> duration != null && duration > 0)
+                        .mapToLong(Long::longValue)
+                        .average()
+                        .orElse(0d)
+        );
+
+        Set<String> distinctTraceIds = traces.stream()
+                .map(RuntimeTraceBuffer.RuntimeTrace::traceId)
+                .collect(java.util.stream.Collectors.toSet());
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("requestsPerHour", requestsPerHour);
+        payload.put("errorsPerHour", errorsPerHour);
+        payload.put("activeFlows", activeFlows);
+        payload.put("avgLatencyMs", avgLatencyMs);
+        payload.put("traceCount", distinctTraceIds.size());
+        payload.put("updatedAt", Instant.now());
+
+        return ResponseEntity.ok(ApiResponse.success(payload));
     }
 
     // ==================== Summary Conversion ====================
