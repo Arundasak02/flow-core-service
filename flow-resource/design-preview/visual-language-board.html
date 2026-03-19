@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flow Visual OS - Language Board</title>
+    <style>
+      :root {
+        --bg-canvas: #07090f;
+        --bg-panel: #0f1320;
+        --bg-elevated: #141a2a;
+        --bg-soft: #1a2136;
+        --border-default: #2a334d;
+        --border-strong: #3a4768;
+        --text-primary: #f5f7ff;
+        --text-secondary: #bac4e0;
+        --text-muted: #7f8aaa;
+        --accent: #7367ff;
+        --accent-2: #4f8bff;
+        --success: #4dc37f;
+        --warning: #f5b34a;
+        --error: #f36a6a;
+        --radius-sm: 6px;
+        --radius-md: 10px;
+        --radius-lg: 14px;
+        --space-1: 4px;
+        --space-2: 8px;
+        --space-3: 12px;
+        --space-4: 16px;
+        --space-5: 24px;
+        --space-6: 32px;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text-primary);
+        background:
+          radial-gradient(circle at 80% -20%, rgba(115, 103, 255, 0.25), transparent 40%),
+          radial-gradient(circle at 20% 100%, rgba(79, 139, 255, 0.16), transparent 36%),
+          var(--bg-canvas);
+      }
+
+      .wrap {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: var(--space-6);
+      }
+
+      .hero {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--space-4);
+        margin-bottom: var(--space-5);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.2;
+      }
+
+      .sub { color: var(--text-secondary); font-size: 14px; }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: var(--space-4);
+      }
+
+      .card {
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent), var(--bg-panel);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-lg);
+        padding: var(--space-4);
+      }
+
+      .card h2 {
+        margin: 0 0 var(--space-3);
+        font-size: 16px;
+        color: var(--text-primary);
+      }
+
+      .span-4 { grid-column: span 4; }
+      .span-6 { grid-column: span 6; }
+      .span-8 { grid-column: span 8; }
+      .span-12 { grid-column: span 12; }
+
+      .token-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--space-2) 0;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+
+      .token-row:last-child { border-bottom: 0; }
+
+      .swatch {
+        width: 18px;
+        height: 18px;
+        border-radius: 5px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        margin-right: var(--space-2);
+      }
+
+      .swatch-line { display: flex; align-items: center; gap: var(--space-2); }
+
+      .btns { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+      .btn {
+        border-radius: var(--radius-md);
+        font-size: 13px;
+        height: 34px;
+        padding: 0 var(--space-3);
+        border: 1px solid var(--border-default);
+        color: var(--text-primary);
+        background: var(--bg-elevated);
+      }
+
+      .btn.primary { background: linear-gradient(90deg, var(--accent), var(--accent-2)); border: 0; }
+      .btn.secondary { background: #202947; border-color: #32416a; }
+      .btn.ghost { background: transparent; }
+
+      .input {
+        width: 100%;
+        height: 36px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-default);
+        background: #0c1020;
+        color: var(--text-primary);
+        padding: 0 var(--space-3);
+        font-size: 13px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 220px 1fr 320px;
+        gap: var(--space-3);
+        height: 340px;
+      }
+
+      .shell {
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-md);
+        background: #0c1020;
+        overflow: hidden;
+      }
+
+      .shell .head {
+        height: 44px;
+        border-bottom: 1px solid var(--border-default);
+        display: flex;
+        align-items: center;
+        padding: 0 var(--space-3);
+        color: var(--text-secondary);
+        font-size: 12px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 11px;
+        background: #1f2944;
+        color: #cdd7f3;
+        border: 1px solid #344164;
+      }
+
+      .kpi {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: var(--space-2);
+      }
+
+      .kpi > div {
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-md);
+        padding: var(--space-3);
+        background: #0d1325;
+      }
+
+      .kpi strong { display: block; font-size: 18px; margin-top: var(--space-1); }
+      .muted { color: var(--text-muted); font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="hero">
+        <h1>Flow Visual OS Language Board</h1>
+        <div class="sub">Pre-dev lock: typography, color semantics, spacing, components, and layout shells</div>
+      </section>
+
+      <section class="grid">
+        <article class="card span-4">
+          <h2>Color Semantics</h2>
+          <div class="token-row"><span class="swatch-line"><span class="swatch" style="background:#7367ff"></span>Node Service</span><span>#7367ff</span></div>
+          <div class="token-row"><span class="swatch-line"><span class="swatch" style="background:#4f8bff"></span>Edge Sync</span><span>#4f8bff</span></div>
+          <div class="token-row"><span class="swatch-line"><span class="swatch" style="background:#4dc37f"></span>Success</span><span>#4dc37f</span></div>
+          <div class="token-row"><span class="swatch-line"><span class="swatch" style="background:#f5b34a"></span>Warning</span><span>#f5b34a</span></div>
+          <div class="token-row"><span class="swatch-line"><span class="swatch" style="background:#f36a6a"></span>Error</span><span>#f36a6a</span></div>
+        </article>
+
+        <article class="card span-4">
+          <h2>Typography Scale</h2>
+          <div class="token-row"><span>xs</span><span>11/16</span></div>
+          <div class="token-row"><span>sm</span><span>12/18</span></div>
+          <div class="token-row"><span>md</span><span>14/20</span></div>
+          <div class="token-row"><span>lg</span><span>16/24</span></div>
+          <div class="token-row"><span>xl</span><span>20/28</span></div>
+          <div class="token-row"><span>2xl</span><span>28/36</span></div>
+        </article>
+
+        <article class="card span-4">
+          <h2>Spacing Grid</h2>
+          <div class="token-row"><span>Base unit</span><span>4px</span></div>
+          <div class="token-row"><span>Rhythm</span><span>8px</span></div>
+          <div class="token-row"><span>Steps</span><span>4 / 8 / 12 / 16 / 24 / 32</span></div>
+          <div class="token-row"><span>Radius</span><span>6 / 10 / 14</span></div>
+          <div class="token-row"><span>Node min padding</span><span>12</span></div>
+        </article>
+
+        <article class="card span-6">
+          <h2>Component Primitives</h2>
+          <div class="btns" style="margin-bottom:12px;">
+            <button class="btn primary">Primary Action</button>
+            <button class="btn secondary">Secondary</button>
+            <button class="btn ghost">Ghost</button>
+            <span class="pill">Keyboard-first</span>
+          </div>
+          <input class="input" value="Search flows, services, methods..." />
+        </article>
+
+        <article class="card span-6">
+          <h2>Operational Metrics Strip</h2>
+          <div class="kpi">
+            <div><div class="muted">Requests/hr</div><strong>12,847</strong></div>
+            <div><div class="muted">Errors/hr</div><strong style="color:#f36a6a;">3</strong></div>
+            <div><div class="muted">Flows</div><strong>16</strong></div>
+            <div><div class="muted">Avg latency</div><strong>22ms</strong></div>
+          </div>
+        </article>
+
+        <article class="card span-12">
+          <h2>Core Layout Shells</h2>
+          <div class="layout">
+            <div class="shell">
+              <div class="head">Sidebar Navigation</div>
+            </div>
+            <div class="shell">
+              <div class="head">Graph Workspace (Primary)</div>
+            </div>
+            <div class="shell">
+              <div class="head">Split Panel (Context / Debug)</div>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>
