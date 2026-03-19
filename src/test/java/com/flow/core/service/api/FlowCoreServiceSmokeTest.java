@@ -175,5 +175,76 @@ class FlowCoreServiceSmokeTest {
                         .param("zoom", "0"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void runtimeSummary_graphNotFound_returns404() throws Exception {
+        mockMvc.perform(get("/graphs/non-existent/runtime-summary"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void runtimeSummary_forExistingGraph_returnsKpis() throws Exception {
+        String graphId = "runtime-smoke-graph";
+        String traceId = "runtime-smoke-trace";
+
+        StaticGraphIngestRequest graphRequest = StaticGraphIngestRequest.builder()
+                .graphId(graphId)
+                .version("1.0.0")
+                .nodes(List.of(
+                        StaticGraphIngestRequest.NodeDto.builder()
+                                .nodeId("node-1")
+                                .type("service")
+                                .name("GatewayService")
+                                .build()
+                ))
+                .edges(List.of())
+                .build();
+
+        mockMvc.perform(post("/ingest/static")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(graphRequest)))
+                .andExpect(status().isAccepted());
+
+        RuntimeEventIngestRequest runtimeRequest = RuntimeEventIngestRequest.builder()
+                .graphId(graphId)
+                .traceId(traceId)
+                .events(List.of(
+                        RuntimeEventIngestRequest.EventDto.builder()
+                                .eventId("evt-runtime-1")
+                                .type("METHOD_ENTER")
+                                .timestamp(Instant.now())
+                                .nodeId("node-1")
+                                .durationMs(12L)
+                                .build(),
+                        RuntimeEventIngestRequest.EventDto.builder()
+                                .eventId("evt-runtime-2")
+                                .type("ERROR")
+                                .timestamp(Instant.now())
+                                .nodeId("node-1")
+                                .durationMs(9L)
+                                .errorType("RuntimeException")
+                                .errorMessage("boom")
+                                .attributes(Map.of("stackTrace", "sample"))
+                                .build()
+                ))
+                .traceComplete(true)
+                .build();
+
+        mockMvc.perform(post("/ingest/runtime")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(runtimeRequest)))
+                .andExpect(status().isAccepted());
+
+        mockMvc.perform(get("/graphs/" + graphId + "/runtime-summary"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.requestsPerHour").isNumber())
+                .andExpect(jsonPath("$.data.errorsPerHour").isNumber())
+                .andExpect(jsonPath("$.data.activeFlows").isNumber())
+                .andExpect(jsonPath("$.data.avgLatencyMs").isNumber())
+                .andExpect(jsonPath("$.data.updatedAt").exists());
+    }
 }
 
