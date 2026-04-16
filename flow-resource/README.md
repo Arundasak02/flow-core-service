@@ -1,37 +1,24 @@
-# Flow — Source of Truth
+# flow-resource — Documentation Index
 
-> **Flow is Google Maps for code** — a SaaS platform that visualizes how code executes in real time, with business context at every step.
+> This folder contains documentation for flow-core-service and the broader Flow platform.
+> **Single source of truth for this service.** For the workspace-wide knowledge base, see `/flow-docs/` in the workspace root.
 
-This folder is the **single authoritative repository** of all Flow platform documentation.
-All repos (`flow-engine`, `flow-core-service`, `flow-java-adapter`, `flow-runtime-agent`, and future language adapters/agents) reference this folder as the canonical source.
+## Files
 
-If any repo changes a contract, payload shape, endpoint path, or architectural decision — **update these documents in the same change-set.**
+| File | Purpose |
+|---|---|
+| `01-VISION.md` | Product vision and goals |
+| `02-ARCHITECTURE.md` | System architecture (all 5 repos) |
+| `03-CONTRACTS.md` | nodeId format, REST API, JSON schemas |
+| `04-SERVICE-GUIDE.md` | flow-core-service internals: classes, config, pipelines |
+| `05-ROADMAP.md` | Reality-checked phases (not the old outdated version) |
+| `06-BUGS.md` | Known bugs (code-verified, April 2026) |
 
----
+## Note on Previous Documentation
 
-## Document Index
+The previous `flow-resource/` docs (01–15) have been replaced. Some were outdated or had incorrect claims:
+- `10-ROADMAP.md` claimed things as "Complete" that have known bugs
+- `11-GAP-ANALYSIS-AND-DETAILED-ROADMAP.md` listed bugs that were already fixed in current code
+- Files 13–15 (UI brainstorm/design) moved to workspace `flow-docs/brainstorm/`
 
-| # | Document | Scope |
-|---|----------|-------|
-| 01 | [Vision & Product](01-VISION-AND-PRODUCT.md) | What Flow is, the three objectives, market positioning, target users, what Flow is NOT |
-| 02 | [Architecture Overview](02-ARCHITECTURE-OVERVIEW.md) | Language-agnostic core vs language-specific periphery, repo responsibilities, data flow, tech stack |
-| 03 | [Contracts & Protocols](03-CONTRACTS-AND-PROTOCOLS.md) | nodeId contract, graphId contract, event payloads, GEF format, API contracts, backpressure rules |
-| 04 | [Flow Engine Guide](04-FLOW-ENGINE-GUIDE.md) | Language-agnostic graph processing library: data model, pipeline, zoom levels, merge engine, export |
-| 05 | [Flow Core Service Guide](05-FLOW-CORE-SERVICE-GUIDE.md) | Central SaaS microservice: ingestion, storage, querying, export, monitoring, configuration |
-| 06 | [Flow Java Adapter Guide](06-FLOW-JAVA-ADAPTER-GUIDE.md) | First language adapter (Java): build-time scanner, plugins, GEF output |
-| 07 | [Flow Runtime Agent Guide](07-FLOW-RUNTIME-AGENT-GUIDE.md) | First runtime agent (JVM): instrumentation, safety rules, pipeline, transport, phased delivery |
-| 08 | [Coding Standards](08-CODING-STANDARDS.md) | Design patterns, SOLID principles, conventions, testing strategy, build order |
-| 09 | [API Reference](09-API-REFERENCE.md) | Complete REST API documentation with request/response examples |
-| 10 | [Roadmap](10-ROADMAP.md) | Current status, strategic priorities, SaaS milestones, key decisions |
-| 11 | [Gap Analysis & Detailed Roadmap](11-GAP-ANALYSIS-AND-DETAILED-ROADMAP.md) | Audit results, PetClinic validation, low-level checklist, brainstorm points |
-| 12 | [Deferred Feature Tracker](12-FEATURE-TRACKER.md) | Features intentionally deferred as separate tracks (including CI/CD graph push) |
-
----
-
-## Rules for This Folder
-
-1. **This is the truth.** If code and docs disagree, update the docs (or fix the code).
-2. **Cross-repo contracts** (nodeId, graphId, GEF format, event payloads) must be updated here before implementation.
-3. **No duplicate docs.** Individual repos should NOT have their own copies of this information.
-4. **Number-prefixed ordering** ensures documents are read in logical sequence.
-5. **Language-agnostic first.** Core contracts (GEF, events, API) are defined language-agnostically. Language-specific details are noted as examples within the relevant adapter/agent guides.
+All new documentation is accurate as of April 2026, based on direct code inspection.

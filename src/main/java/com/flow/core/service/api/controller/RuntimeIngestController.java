@@ -142,7 +142,16 @@ public class RuntimeIngestController {
     private RuntimeEventIngestRequest convertAgentBatch(
             String graphId, String traceId, List<AgentBatchIngestRequest.AgentEventDto> agentEvents) {
 
-        List<RuntimeEventIngestRequest.EventDto> events = agentEvents.stream()
+        // Separate synthetic TRACE_COMPLETE signals from real trace events.
+        // TRACE_COMPLETE is emitted by EntryPointAdvice.onExit() to trigger immediate merge.
+        boolean traceCompleteSignal = agentEvents.stream()
+                .anyMatch(ae -> "TRACE_COMPLETE".equalsIgnoreCase(ae.getType()));
+
+        List<AgentBatchIngestRequest.AgentEventDto> realEvents = agentEvents.stream()
+                .filter(ae -> !"TRACE_COMPLETE".equalsIgnoreCase(ae.getType()))
+                .toList();
+
+        List<RuntimeEventIngestRequest.EventDto> events = realEvents.stream()
                 .map(ae -> {
                     // Deduplication uses eventId when present; for CHECKPOINT events we can receive a null spanId
                     // (e.g., when the controller entrypoint isn't instrumented), so we must include more
@@ -180,7 +189,9 @@ public class RuntimeIngestController {
                 })
                 .toList();
 
-        boolean traceComplete = agentEvents.stream().anyMatch(ae ->
+        // traceComplete is true if an explicit TRACE_COMPLETE signal was received, OR if a
+        // root METHOD_EXIT (no parentSpanId) is present — whichever fires first.
+        boolean traceComplete = traceCompleteSignal || realEvents.stream().anyMatch(ae ->
                 "METHOD_EXIT".equalsIgnoreCase(ae.getType()) && (ae.getParentSpanId() == null || ae.getParentSpanId().isBlank())
         );
 
