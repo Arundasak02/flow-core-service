@@ -7,6 +7,13 @@ spring:
     authentication:
       username: neo4j
       password: Arundas@02
+  # SQLite datasource for enrichment cache and deployment history
+  datasource:
+    url: jdbc:sqlite:${user.home}/.flow/flow.db
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+      connection-timeout: 30000
 
 server:
   port: 8080
@@ -98,4 +105,21 @@ flow:
     uri: neo4j://127.0.0.1:7687
     username: neo4j
     password: Arundas@02
+
+  # AI Enrichment Configuration
+  ai:
+    enabled: true
+    provider: ollama            # ollama | openai | noop
+    ollama:
+      base-url: http://localhost:11434
+      model: qwen2.5-coder:7b
+      timeout-seconds: 120
+    openai:
+      base-url: https://api.openai.com
+      model: gpt-4o-mini
+      api-key: ${FLOW_AI_API_KEY:}
+    enrichment:
+      max-concurrent: 4         # parallel LLM calls
+      confidence-threshold: 0.6 # retry below this
+      prompt-version: "2.0"
 

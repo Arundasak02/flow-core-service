@@ -12,6 +12,8 @@ import com.flow.core.service.api.dto.StaticGraphIngestRequest;
 import com.flow.core.service.engine.FlowExtractorAdapter;
 import com.flow.core.service.engine.GraphStore;
 import com.flow.core.service.engine.GraphStore.GraphMetadata;
+import com.flow.core.service.enrichment.AIEnrichmentResult;
+import com.flow.core.service.enrichment.EnrichmentStore;
 import com.flow.core.service.runtime.RuntimeTraceBuffer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -45,6 +47,7 @@ public class GraphController {
     private final GraphStore graphStore;
     private final FlowExtractorAdapter flowExtractor;
     private final RuntimeTraceBuffer traceBuffer;
+    private final EnrichmentStore enrichmentStore;
 
     // ==================== Endpoints ====================
 
@@ -62,16 +65,27 @@ public class GraphController {
     }
 
     @GetMapping("/graphs/{graphId}")
-    @Operation(summary = "Get graph by ID", description = "Returns the complete graph with nodes and edges")
+    @Operation(summary = "Get graph by ID",
+               description = "Returns the complete graph with nodes and edges. " +
+                             "Use ?view=business to suppress UTILITY nodes (getters, setters, etc.).")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Graph found"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Graph not found")
     })
     public ResponseEntity<ApiResponse<GraphDetailResponse>> getGraphById(
-            @Parameter(description = "Graph ID") @PathVariable String graphId) {
-        log.debug("Getting graph: {}", graphId);
+            @Parameter(description = "Graph ID") @PathVariable String graphId,
+            @Parameter(description = "Filter mode: 'business' hides UTILITY nodes (should_instrument=false)")
+            @RequestParam(required = false) String view) {
+        log.debug("Getting graph: {} view={}", graphId, view);
         return graphStore.findById(graphId)
-                .map(graph -> successResponse(graphId, graph))
+                .map(graph -> {
+                    var response = successResponse(graphId, graph);
+                    if ("business".equalsIgnoreCase(view) && response.getBody() != null
+                            && response.getBody().getData() != null) {
+                        applyBusinessFilter(graphId, response.getBody().getData());
+                    }
+                    return response;
+                })
                 .orElseGet(() -> notFoundResponse(graphId));
     }
 
@@ -106,6 +120,56 @@ public class GraphController {
 
         log.info("Deleted graph {} and {} traces", graphId, tracesDeleted);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/graphs/{graphId}/enrichment")
+    @Operation(summary = "Get AI enrichment for graph nodes",
+               description = "Returns AI-generated business meaning for each instrumented node. " +
+                             "Includes one_line_summary, category, should_instrument, confidence, and capture_variables.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Enrichment data found"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Graph not found")
+    })
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getGraphEnrichment(
+            @Parameter(description = "Graph ID") @PathVariable String graphId) {
+        log.debug("Getting enrichment for graph: {}", graphId);
+
+        if (graphStore.findById(graphId).isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("Graph not found", "NOT_FOUND"));
+        }
+
+        List<AIEnrichmentResult> enrichments = enrichmentStore.findEnrichmentsForGraph(graphId);
+
+        List<Map<String, Object>> nodes = enrichments.stream()
+                .map(e -> {
+                    Map<String, Object> node = new HashMap<>();
+                    node.put("nodeId", e.nodeId());
+                    node.put("oneLineSummary", e.oneLineSummary());
+                    node.put("detailedLogic", e.detailedLogic());
+                    node.put("category", e.category());
+                    node.put("shouldInstrument", e.shouldInstrument());
+                    node.put("confidence", e.confidence());
+                    node.put("captureSpecs", e.captureVariables());
+                    node.put("businessNoun", e.businessNoun());
+                    node.put("businessVerb", e.businessVerb());
+                    return node;
+                })
+                .toList();
+
+        long instrumentedCount = enrichments.stream().filter(AIEnrichmentResult::shouldInstrument).count();
+        long noisyCount = enrichments.size() - instrumentedCount;
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("graphId", graphId);
+        payload.put("totalEnrichedNodes", enrichments.size());
+        payload.put("instrumentedNodes", instrumentedCount);
+        payload.put("noisyNodes", noisyCount);
+        payload.put("nodes", nodes);
+
+        log.info("Returning enrichment for graph={} total={} instrumented={} noisy={}",
+                graphId, enrichments.size(), instrumentedCount, noisyCount);
+        return ResponseEntity.ok(ApiResponse.success(payload));
     }
 
     @GetMapping("/graphs/{graphId}/runtime-summary")
@@ -425,5 +489,60 @@ public class GraphController {
             }
         }
         return UNKNOWN_GRAPH_ID;
+    }
+
+    // ==================== Business Filter ====================
+
+    /**
+     * Applies business view to graph detail:
+     *  1. Removes UTILITY nodes (should_instrument=false) and their edges.
+     *  2. Embeds AI enrichment (oneLineSummary, category, etc.) inline in each surviving node.
+     */
+    private void applyBusinessFilter(String graphId, GraphDetailResponse detail) {
+        List<AIEnrichmentResult> enrichments = enrichmentStore.findEnrichmentsForGraph(graphId);
+        if (enrichments.isEmpty()) return;
+
+        // Build lookup maps
+        Map<String, AIEnrichmentResult> enrichmentByNodeId = enrichments.stream()
+                .collect(java.util.stream.Collectors.toMap(AIEnrichmentResult::nodeId, e -> e, (a, b) -> a));
+
+        Set<String> noisyNodeIds = enrichments.stream()
+                .filter(e -> !e.shouldInstrument())
+                .map(AIEnrichmentResult::nodeId)
+                .collect(java.util.stream.Collectors.toSet());
+
+        int before = detail.getNodes() != null ? detail.getNodes().size() : 0;
+
+        if (detail.getNodes() != null) {
+            detail.setNodes(detail.getNodes().stream()
+                    .filter(n -> !noisyNodeIds.contains(n.getNodeId()))
+                    .peek(n -> {
+                        AIEnrichmentResult e = enrichmentByNodeId.get(n.getNodeId());
+                        if (e != null) {
+                            n.setEnrichment(GraphDetailResponse.NodeEnrichment.builder()
+                                    .oneLineSummary(e.oneLineSummary())
+                                    .detailedLogic(e.detailedLogic())
+                                    .category(e.category())
+                                    .shouldInstrument(e.shouldInstrument())
+                                    .confidence(e.confidence())
+                                    .captureSpecs(e.captureVariables())
+                                    .businessNoun(e.businessNoun())
+                                    .businessVerb(e.businessVerb())
+                                    .build());
+                        }
+                    })
+                    .toList());
+        }
+
+        if (detail.getEdges() != null) {
+            detail.setEdges(detail.getEdges().stream()
+                    .filter(e -> !noisyNodeIds.contains(e.getSourceNodeId())
+                              && !noisyNodeIds.contains(e.getTargetNodeId()))
+                    .toList());
+        }
+
+        int after = detail.getNodes() != null ? detail.getNodes().size() : 0;
+        log.debug("Business filter: graphId={} nodes {}->{} ({} suppressed, {} enriched)",
+                graphId, before, after, before - after, after);
     }
 }

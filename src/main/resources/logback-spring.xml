@@ -29,6 +29,8 @@
     <logger name="com.flow.core.service" level="DEBUG"/>
     <logger name="com.flow.core.service.ingest" level="INFO"/>
     <logger name="com.flow.core.service.engine" level="INFO"/>
+    <!-- Set to TRACE to see full Ollama prompts + raw responses -->
+    <logger name="com.flow.core.service.enrichment.OllamaAIProvider" level="DEBUG"/>
 
     <!-- Spring Framework -->
     <logger name="org.springframework" level="INFO"/>
