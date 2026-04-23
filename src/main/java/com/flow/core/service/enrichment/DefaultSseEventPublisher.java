@@ -13,7 +13,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Default SSE publisher. Clients subscribe via GET /sse/events.
- * Uses CopyOnWriteArrayList — safe for concurrent add/remove without locks.
+ *
+ * <p>Each subscriber is stored with its requested {@code graphId} scope.
+ * Events are only delivered to subscribers whose scope matches the event's graphId,
+ * or to wildcard subscribers (graphId=null).
+ *
+ * <p>Uses CopyOnWriteArrayList — safe for concurrent add/remove without locks.
  */
 @Slf4j
 @Component
@@ -21,22 +26,33 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class DefaultSseEventPublisher implements SseEventPublisher {
 
     private final ObjectMapper objectMapper;
-    private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
+    private final List<ScopedEmitter> emitters = new CopyOnWriteArrayList<>();
+
+    /**
+     * Pairs an SSE emitter with the graphId it subscribed for.
+     * A null graphId means wildcard — receives all events.
+     */
+    private record ScopedEmitter(String graphId, SseEmitter emitter) {
+        boolean matches(String eventGraphId) {
+            return graphId == null || graphId.equals(eventGraphId);
+        }
+    }
 
     @Override
-    public SseEmitter subscribe() {
+    public SseEmitter subscribe(String graphId) {
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
-        emitters.add(emitter);
-        emitter.onCompletion(() -> emitters.remove(emitter));
-        emitter.onTimeout(() -> emitters.remove(emitter));
-        emitter.onError(e -> emitters.remove(emitter));
-        log.debug("SSE client subscribed, total={}", emitters.size());
+        ScopedEmitter scoped = new ScopedEmitter(graphId, emitter);
+        emitters.add(scoped);
+        emitter.onCompletion(() -> emitters.remove(scoped));
+        emitter.onTimeout(() -> emitters.remove(scoped));
+        emitter.onError(e -> emitters.remove(scoped));
+        log.debug("SSE client subscribed graphId={}, total={}", graphId, emitters.size());
         return emitter;
     }
 
     @Override
     public void publishEnrichmentProgress(String graphId, String nodeId, String oneLineSummary) {
-        publish("enrichment_progress", Map.of(
+        publish("enrichment_progress", graphId, Map.of(
             "graphId", graphId,
             "nodeId", nodeId,
             "oneLineSummary", oneLineSummary != null ? oneLineSummary : ""
@@ -45,28 +61,38 @@ public class DefaultSseEventPublisher implements SseEventPublisher {
 
     @Override
     public void publishEnrichmentComplete(String graphId, int totalEnriched) {
-        publish("enrichment_complete", Map.of(
+        publish("enrichment_complete", graphId, Map.of(
             "graphId", graphId,
             "totalEnriched", totalEnriched
         ));
     }
 
-    private void publish(String eventType, Object data) {
+    @Override
+    public void publishTraceArrived(String graphId, String traceId) {
+        publish("trace_arrived", graphId, Map.of(
+            "graphId", graphId,
+            "traceId", traceId
+        ));
+    }
+
+    private void publish(String eventType, String graphId, Object data) {
         if (emitters.isEmpty()) return;
         String json;
         try {
             json = objectMapper.writeValueAsString(data);
         } catch (Exception e) {
-            log.warn("Failed to serialize SSE event: {}", e.getMessage());
+            log.warn("Failed to serialize SSE event type={}: {}", eventType, e.getMessage());
             return;
         }
         SseEmitter.SseEventBuilder event = SseEmitter.event().name(eventType).data(json);
-        for (SseEmitter emitter : emitters) {
+        for (ScopedEmitter scoped : emitters) {
+            if (!scoped.matches(graphId)) continue;
             try {
-                emitter.send(event);
+                scoped.emitter().send(event);
             } catch (IOException e) {
-                emitters.remove(emitter);
+                emitters.remove(scoped);
             }
         }
+        log.debug("SSE event published type={} graphId={}", eventType, graphId);
     }
 }

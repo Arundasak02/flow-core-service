@@ -3,6 +3,7 @@ package com.flow.core.service.runtime;
 import com.flow.core.service.api.dto.RuntimeEventIngestRequest;
 import com.flow.core.service.config.MetricsConfig;
 import com.flow.core.service.config.RetentionConfig;
+import com.flow.core.service.enrichment.SseEventPublisher;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ public class InMemoryRuntimeTraceBuffer implements RuntimeTraceBuffer {
     private final EventDeduplicator deduplicator;
     private final MetricsConfig metricsConfig;
     private final RetentionConfig retentionConfig;
+    private final SseEventPublisher ssePublisher;
 
     private final Map<String, MutableTrace> traces = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> graphToTraces = new ConcurrentHashMap<>();
@@ -109,7 +111,8 @@ public class InMemoryRuntimeTraceBuffer implements RuntimeTraceBuffer {
         MutableTrace trace = traces.get(traceId);
         if (trace != null) {
             trace.markComplete();
-            log.debug("Trace marked complete: {}", traceId);
+            ssePublisher.publishTraceArrived(trace.graphId, traceId);
+            log.debug("Trace marked complete and SSE fired: traceId={} graphId={}", traceId, trace.graphId);
         }
     }
 

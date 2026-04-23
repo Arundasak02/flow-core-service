@@ -4,6 +4,7 @@ import com.flow.core.graph.CoreEdge;
 import com.flow.core.graph.CoreGraph;
 import com.flow.core.graph.CoreNode;
 import com.flow.core.service.api.dto.ApiResponse;
+import com.flow.core.service.api.dto.CapabilityMapResponse;
 import com.flow.core.service.api.dto.GraphDetailResponse;
 import com.flow.core.service.api.dto.GraphDetailResponse.EdgeResponse;
 import com.flow.core.service.api.dto.GraphDetailResponse.NodeResponse;
@@ -13,6 +14,7 @@ import com.flow.core.service.engine.FlowExtractorAdapter;
 import com.flow.core.service.engine.GraphStore;
 import com.flow.core.service.engine.GraphStore.GraphMetadata;
 import com.flow.core.service.enrichment.AIEnrichmentResult;
+import com.flow.core.service.enrichment.CapabilityMapBuilder;
 import com.flow.core.service.enrichment.EnrichmentStore;
 import com.flow.core.service.runtime.RuntimeTraceBuffer;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,6 +50,7 @@ public class GraphController {
     private final FlowExtractorAdapter flowExtractor;
     private final RuntimeTraceBuffer traceBuffer;
     private final EnrichmentStore enrichmentStore;
+    private final CapabilityMapBuilder capabilityMapBuilder;
 
     // ==================== Endpoints ====================
 
@@ -170,6 +173,24 @@ public class GraphController {
         log.info("Returning enrichment for graph={} total={} instrumented={} noisy={}",
                 graphId, enrichments.size(), instrumentedCount, noisyCount);
         return ResponseEntity.ok(ApiResponse.success(payload));
+    }
+
+    @GetMapping("/graphs/{graphId}/capabilities")
+    @Operation(summary = "Get business capability map",
+               description = "Returns English-first capability groups derived from graph structure + AI enrichment. " +
+                             "Groups entry-point triggers by domain concept (businessNoun). " +
+                             "Falls back to path-based grouping when AI enrichment is not available.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Capability map built"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Graph not found")
+    })
+    public ResponseEntity<ApiResponse<CapabilityMapResponse>> getCapabilities(
+            @Parameter(description = "Graph ID") @PathVariable String graphId) {
+        log.debug("Building capability map for graph: {}", graphId);
+        return capabilityMapBuilder.build(graphId)
+                .map(resp -> ResponseEntity.ok(ApiResponse.success(resp)))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ApiResponse.error("Graph not found: " + graphId, "NOT_FOUND")));
     }
 
     @GetMapping("/graphs/{graphId}/runtime-summary")

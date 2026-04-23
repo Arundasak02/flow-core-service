@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -79,17 +80,28 @@ public class FlowExtractorAdapter {
     }
 
     private ZoomedGraphView buildZoomedView(CoreGraph coreGraph, int zoomLevel) {
-        var filteredNodes = coreGraph.getNodesByZoomLevel(zoomLevel);
+        // Cumulative: include all nodes with zoomLevel <= requested level.
+        // This ensures ENDPOINT nodes (zoom=1) remain visible at zoom=3, making
+        // HANDLES edges (ENDPOINT→METHOD) renderable by the AND-logic edge filter.
+        var filteredNodes = getNodesUpToZoomLevel(coreGraph, zoomLevel);
         var nodeIds = collectNodeIds(filteredNodes);
         var filteredEdges = filterEdgesByNodes(coreGraph, nodeIds);
 
-        log.debug("Extracted {} nodes at zoom level {}", filteredNodes.size(), zoomLevel);
+        log.debug("Extracted {} nodes (cumulative ≤ zoom {}) with {} edges",
+                filteredNodes.size(), zoomLevel, filteredEdges.size());
 
         return ZoomedGraphView.builder()
                 .zoomLevel(zoomLevel)
                 .nodes(toNodeViews(filteredNodes))
                 .edges(toEdgeViews(filteredEdges))
                 .build();
+    }
+
+    /** Returns all nodes whose zoom level is within [1, maxZoomLevel]. */
+    private List<CoreNode> getNodesUpToZoomLevel(CoreGraph coreGraph, int maxZoomLevel) {
+        return coreGraph.getAllNodes().stream()
+                .filter(n -> n.getZoomLevel() >= 1 && n.getZoomLevel() <= maxZoomLevel)
+                .toList();
     }
 
     private Set<String> collectNodeIds(List<CoreNode> nodes) {
